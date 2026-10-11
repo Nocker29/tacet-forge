@@ -39,6 +39,13 @@ export const currentAnnouncement: Announcement | null = {
 
 export const updateEntries: UpdateEntry[] = [
   {
+    date: "2026-10-11",
+    dateLabel: "October 11, 2026",
+    items: [
+      "Fixes Vitreum Dancer echo sets",
+    ],
+  },
+  {
     date: "2026-10-10",
     dateLabel: "October 10, 2026",
     items: [
