@@ -56,7 +56,7 @@ Values use this app's keys (`mainEchoesData`, `echoSetLabelMap`, `statsTable`, `
 
 ## Equipped echoes (`equippedBy`)
 
-`equippedBy` is the character key Wavescan saw wearing the echo (`"YangyangXuanling"`), `"Rover"` for the main character, or `null`. When any echo has one, the Echoes card shows an **Equipped echoes** review before the import button. See [ADR 0039](adr/0039-wavescan-equipped-loadouts.md) for the reasoning.
+`equippedBy` is the character key Wavescan saw wearing the echo (`"YangyangXuanling"`), `"Rover"` for the main character, or `null`. When any echo has one, the Echoes card shows an **Equipped echoes** review before the import button. See [ADR 0040](adr/0040-wavescan-equipped-loadouts.md) for the reasoning.
 
 - **Grouping.** `groupWavescanLoadouts` (`src/wavescan/loadouts.ts`) groups valid echoes per character and sorts them by cost, highest first, keeping file order within a cost. It flags:
   - a guessed main echo, when two echoes share the top cost;

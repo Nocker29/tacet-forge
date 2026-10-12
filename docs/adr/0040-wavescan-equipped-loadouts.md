@@ -5,7 +5,7 @@ tags: [scanner, interop, stores, components]
 supersedes: [0038]
 ---
 
-# 39. Equip characters from a Wavescan export's `equippedBy`
+# 40. Equip characters from a Wavescan export's `equippedBy`
 
 ## Context
 
