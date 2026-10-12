@@ -323,7 +323,7 @@ const widthClass = computed(() => `live-result-detail--${widthPreset.value}`);
   border-bottom: 1px solid oklch(var(--b3));
 }
 .control-row__label {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: oklch(var(--bc) / 0.5);
@@ -340,7 +340,7 @@ const widthClass = computed(() => `live-result-detail--${widthPreset.value}`);
   border: none;
   background: transparent;
   color: oklch(var(--bc) / 0.6);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   padding: 4px 8px;
@@ -371,13 +371,13 @@ const widthClass = computed(() => `live-result-detail--${widthPreset.value}`);
   cursor: pointer;
 }
 .pin-strip__label {
-  font-size: 9.5px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: oklch(var(--bc) / 0.55);
 }
 .pin-strip__value {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .live-result-detail-scrim {
