@@ -39,6 +39,15 @@ export const currentAnnouncement: Announcement | null = {
 
 export const updateEntries: UpdateEntry[] = [
   {
+    date: "2026-10-12",
+    dateLabel: "October 12, 2026",
+    items: [
+      "Bumped up the font size in the app. let me know if you preferred the smaller font size, i could make it customizeable",
+      "Made the pinnable sidebar width customizeable so you can drag the width wherever you want",
+      "Removes Lupa rotation that wasn't right",
+    ],
+  },
+  {
     date: "2026-10-11",
     dateLabel: "October 11, 2026",
     items: [
