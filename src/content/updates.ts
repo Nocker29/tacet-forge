@@ -45,6 +45,7 @@ export const updateEntries: UpdateEntry[] = [
       "Bumped up the font size in the app. let me know if you preferred the smaller font size, i could make it customizeable",
       "Made the pinnable sidebar width customizeable so you can drag the width wherever you want",
       "Removes Lupa rotation that wasn't right",
+      "Improves optimizer UI to auto-sync echo set and main echo buffs into optimizer settings, and make requirements and runner easier to use",
     ],
   },
   {
