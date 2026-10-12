@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-10-09
 tags: [scanner, interop, stores, components]
+superseded_by: [0039]
 ---
 
 # 38. Import Wavescan exports (Labs-flagged, echoes first)
@@ -28,6 +29,8 @@ The existing "Import echoes" box in Backup & Restore pastes raw inventory rows s
 
 - `level` isn't stored. Inventory echoes have no level field, and the main stat is always computed at max level, the same as every other import path.
 - `equippedBy` is ignored until characters are imported.
+  **Superseded 2026-10-12:** `equippedBy` now equips each character's
+  loadout after a review step. See [ADR 0039](./0039-wavescan-equipped-loadouts.md).
 - Characters, weapons and a full overwrite will be added as later sections of the same panel.
 
 ## Consequences
