@@ -47,7 +47,7 @@
         :disabled="!isValid"
         data-test-optimizer-workspace-optimize-btn
         @click="emit('run')">
-        Run<span class="hidden sm:inline">&nbsp;Optimizer</span>
+        <span class="sm:hidden">Run</span><span class="hidden sm:inline">Run Optimizer</span>
       </button>
     </div>
     <div v-if="isExpanded" class="flex flex-wrap gap-1.5 mt-2 sm:hidden">

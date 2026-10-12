@@ -242,9 +242,6 @@
       <!-- v-show, not v-if: the buff rows report their stats to this
            component, so they must stay mounted while collapsed. -->
       <div v-show="isBuffsOpen" class="flex flex-col gap-1">
-        <p class="text-sm opacity-70">
-          Starts from your calculator settings. Changes here only affect the optimizer.
-        </p>
         <template v-if="currentSetBonuses.length">
           <CalculatorOptimizerEchoSet
             v-for="setBonus in currentSetBonuses"
