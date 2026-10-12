@@ -83,6 +83,7 @@ Architecture ADRs (0001–0012, 0029, 0031, 0032, 0034, 0035, 0036, 0037, 0038) 
 | [0033](./0033-team-buffs-summary-grouping-and-hide-impossible.md) | Team Buffs summary: drop contribution totals, group the active tray, add "Hide impossible" | accepted | | components, buffs, weapons |
 | [0038](./0038-v3-ui-default.md) | Make the v3 UI the default, with classic as an opt-in | accepted | | components, stores, analytics, release |
 | [0039](./0039-resizable-live-result-panel.md) | Drag-to-resize the Full breakdown panel | accepted | | components, stores |
+| [0040](./0040-optimizer-buffs-from-calculator.md) | Optimizer echo buffs default to the calculator's settings, with a readiness run bar | accepted | | components, optimizer, stores |
 
 ## When to write a new ADR
 
