@@ -40,6 +40,7 @@ export const updateEntries: UpdateEntry[] = [
     items: [
       "Echo presets are easier to find in the v3 UI: a single Presets button holds saving, theorycrafter builds and the guide, the preset badge reopens the presets window, and empty builds now show a setup panel to import, pull from your inventory, or start from a saved or theorycrafter preset",
       "Fixed resonance chain-unlocked attacks (e.g. Jianxin S6, Aalto S3, Camellya S6, Roccia S6) staying disabled in the rotation editor even though the damage panel showed them",
+      "Fixed echo sets for Questless Knight",
     ],
   },
   {
