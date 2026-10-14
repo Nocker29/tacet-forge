@@ -4098,7 +4098,7 @@ CD: <span class="param">25</span>s.</span>`,
     details: `A humanoid Tacet Discord clad in fine attire, wielding a sharp blade and extraordinary might existing only in legends.`,
     modifiers: [],
     actions: [],
-    sets: ["MoltenRift", "VoidThunder"],
+    sets: ["FrostyResolve", "MidnightVeil"],
   },
   PhantomReactorHusk: {
     key: "PhantomReactorHusk",
