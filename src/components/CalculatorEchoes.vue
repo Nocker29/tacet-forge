@@ -40,11 +40,78 @@
     </Toast>
     <div class="echoes__header flex flex-wrap items-center justify-between gap-4 mb-4 rounded-lg bg-base-200 p-1 pl-3">
       <h3 class="text-sm font-semibold">Echoes</h3>
-      <div class="flex flex-wrap items-center gap-2">
+      <!--
+        v3: one Presets split button (issue #619). The main part opens the
+        presets modal; the caret holds Save, the theorycrafter builds and the
+        guide, so those builds are one click away without leading the header.
+      -->
+      <div v-if="isLiveResultBarEnabled" class="flex flex-wrap items-center gap-2">
         <button class="btn btn-sm" @click="handleOpenEchoesImporter">
           Import Echoes
         </button>
-        <button class="btn btn-sm" @click="handleOpenEchoesPreset">
+        <div class="join echoes-presets-split">
+          <button
+            type="button"
+            class="btn btn-sm join-item"
+            data-test-echoes-presets-open
+            @click="handleOpenEchoesPreset()">
+            Presets
+          </button>
+          <AppOverflowMenu
+            class="join-item"
+            aria-label="More preset actions"
+            data-test="calculator-echoes-presets-menu">
+            <template #trigger>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                class="size-4 fill-current"
+                aria-hidden="true">
+                <path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4z" />
+              </svg>
+            </template>
+            <li>
+              <button type="button" data-test-echoes-presets-save @click="handleOpenSaveEchoPreset">
+                Save current echoes as preset
+              </button>
+            </li>
+            <li v-if="communityEchoPresets.length > 0">
+              <button
+                type="button"
+                class="flex items-center justify-between"
+                data-test-echoes-presets-community
+                @click="handleOpenEchoesPreset({ tab: 'community', source: 'menu' })">
+                Theorycrafter builds
+                <span class="badge badge-sm">{{ communityEchoPresets.length }}</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" @click="handleOpenPresetsGuide">
+                <span class="text-primary">Presets Guide</span>
+              </button>
+            </li>
+          </AppOverflowMenu>
+        </div>
+        <AppOverflowMenu
+          aria-label="More echo actions"
+          data-test="calculator-echoes-overflow-menu">
+          <li>
+            <button type="button" @click="handleOpenWeightsEditor">
+              Customize Weights
+            </button>
+          </li>
+          <li>
+            <button type="button" @click="handleOpenRatingGuide">
+              <span class="text-primary">Rating Guide</span>
+            </button>
+          </li>
+        </AppOverflowMenu>
+      </div>
+      <div v-else class="flex flex-wrap items-center gap-2">
+        <button class="btn btn-sm" @click="handleOpenEchoesImporter">
+          Import Echoes
+        </button>
+        <button class="btn btn-sm" @click="handleOpenEchoesPreset()">
           Use Presets
         </button>
         <button class="btn btn-sm" @click="handleOpenSaveEchoPreset">
@@ -91,7 +158,18 @@
       class="echoes-column echoes-column__sticky-score echoes-mobile-score mb-4"
       :character="character"></CalculatorEchoInsightsPanel>
     <div class="flex flex-wrap items-center gap-2 mb-4">
-      <div v-if="echoPresetName" class="badge badge-primary badge-outline">
+      <button
+        v-if="echoPresetName && isLiveResultBarEnabled"
+        type="button"
+        class="badge badge-primary badge-outline gap-1 cursor-pointer hover:bg-primary/10"
+        data-test-echoes-active-preset
+        v-tooltip="'Switch to a different preset'"
+        @click="handleOpenEchoesPreset({ tab: 'mine', source: 'chip' })">
+        Preset: {{ echoPresetName }}
+        <span class="opacity-50">·</span>
+        Change
+      </button>
+      <div v-else-if="echoPresetName" class="badge badge-primary badge-outline">
         Preset: {{ echoPresetName }}
       </div>
       <div
@@ -120,6 +198,16 @@
     -->
     <div v-if="isLiveResultBarEnabled" class="echoes-layout">
       <div class="echoes-column">
+        <!-- Only when every slot is empty, so it never covers a build in progress. -->
+        <CalculatorEchoesEmptyState
+          v-if="isBuildEmpty"
+          class="mb-5"
+          :saved-preset-count="savedEchoPresetCount"
+          :community-preset-count="communityEchoPresets.length"
+          @import="handleOpenEchoesImporter"
+          @browse-inventory="handleOpenEchoesBrowser(0)"
+          @open-saved-presets="handleOpenEchoesPreset({ tab: 'mine', source: 'empty-state' })"
+          @open-community-builds="handleOpenEchoesPreset({ tab: 'community', source: 'empty-state' })" />
         <div class="echo__list">
           <CalculatorEchoTile
             v-for="(_, index) in 5"
@@ -249,6 +337,7 @@ import CalculatorEchoesBrowser from "./CalculatorEchoesBrowser.vue";
 import WorkspaceEchoesBrowser from "./characterWorkspace/WorkspaceEchoesBrowser.vue";
 import CalculatorEchoImporter from "./CalculatorEchoImporter.vue";
 import CalculatorEchoesPresets from "./CalculatorEchoesPresets.vue";
+import CalculatorEchoesEmptyState from "./CalculatorEchoesEmptyState.vue";
 import CalculatorSaveEchoesPreset from "./CalculatorSaveEchoesPreset.vue";
 import CalculatorEchoesPresetsGuide from "./CalculatorEchoesPresetsGuide.vue";
 import CalculatorEchoRatingGuide from "./CalculatorEchoRatingGuide.vue";
@@ -263,6 +352,7 @@ import { isV3UiEnabled } from "../utils/uiVersion";
 import { getRatingBadgeClasses } from "../composables/useEchoRating";
 import { useTeamSubstatScoreRollup } from "../composables/useTeamSubstatScoreRollup";
 import { randomString } from "../utils/strings.ts";
+import { useCommunityEchoPresets, type EchoPresetsOpenOptions } from "../composables/useCommunityEchoPresets";
 
 const MAX_ECHO_COST = 12;
 
@@ -375,6 +465,12 @@ watch(isTotalCostOverCap, (overCap) => {
   }
 });
 const echoPresetData = computed(() => inventoryStore.getEchoPresetData?.(echoPresetId.value));
+const communityEchoPresets = useCommunityEchoPresets(() => props.character);
+const savedEchoPresetCount = computed(() => inventoryStore.echoPresets?.length ?? 0);
+const isBuildEmpty = computed(() => {
+  const echoes = currentCharacter.value?.echoes;
+  return [0, 1, 2, 3, 4].every((i) => !echoes?.[i]?.echo && !echoes?.[i]?.echoId);
+});
 const echoPresetName = computed(() => echoPresetData.value?.name ?? null);
 
 function setEchoRef(index: number, el: any) {
@@ -481,8 +577,8 @@ function handleOpenEchoesBrowser(echoIndex: number) {
 function handleOpenEchoesImporter() {
   echoesImporter.value?.triggerOpenModal?.();
 }
-function handleOpenEchoesPreset() {
-  echoesPresets.value?.triggerOpenModal?.();
+function handleOpenEchoesPreset(options?: EchoPresetsOpenOptions) {
+  echoesPresets.value?.triggerOpenModal?.(options);
 }
 function handleOpenPresetsGuide() {
   echoesPresetsGuide.value?.triggerOpenModal?.();
@@ -562,6 +658,21 @@ defineExpose({ openEchoesBrowserForIndex: handleOpenEchoesBrowser });
 </script>
 
 <style scoped>
+/*
+ * Presets split button: AppOverflowMenu's trigger is a ghost button with its
+ * own radius, so restyle it here to read as the right half of the join.
+ */
+.echoes-presets-split :deep(.app-overflow-menu__trigger) {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  padding-inline: 0.5rem;
+  background-color: var(--fallback-b2, oklch(var(--b2) / 1));
+  border-left: 1px solid var(--fallback-bc, oklch(var(--bc) / 0.15));
+}
+.echoes-presets-split :deep(.app-overflow-menu__trigger:hover) {
+  background-color: var(--fallback-b3, oklch(var(--b3) / 1));
+}
+
 /*
  * Bounded-width column for the Labs-flagged layout — see
  * docs/adr/0014-echo-editor-redesign.md decision #10 and
