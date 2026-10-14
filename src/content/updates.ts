@@ -31,13 +31,17 @@ export interface Announcement {
 //   date: "2026-09-29",
 //   headline: "Version 3.7 (first half) is up!",
 // };
-export const currentAnnouncement: Announcement | null = {
-  date: "2026-10-10",
-  headline: "The redesigned v3 UI is now the default!",
-  whatsNew: true,
-};
+export const currentAnnouncement: Announcement | null = null;
 
 export const updateEntries: UpdateEntry[] = [
+  {
+    date: "2026-10-14",
+    dateLabel: "October 14, 2026",
+    items: [
+      "Echo presets are easier to find in the v3 UI: a single Presets button holds saving, theorycrafter builds and the guide, the preset badge reopens the presets window, and empty builds now show a setup panel to import, pull from your inventory, or start from a saved or theorycrafter preset",
+      "Fixed resonance chain-unlocked attacks (e.g. Jianxin S6, Aalto S3, Camellya S6, Roccia S6) staying disabled in the rotation editor even though the damage panel showed them",
+    ],
+  },
   {
     date: "2026-10-12",
     dateLabel: "October 12, 2026",
@@ -46,6 +50,7 @@ export const updateEntries: UpdateEntry[] = [
       "Made the pinnable sidebar width customizeable so you can drag the width wherever you want",
       "Removes Lupa rotation that wasn't right",
       "Improves optimizer UI to auto-sync echo set and main echo buffs into optimizer settings, and make requirements and runner easier to use",
+      "Labs: Import from Wavescan now reads which character each echo is equipped on, lets you review and reorder each loadout, and equips them on import",
     ],
   },
   {
