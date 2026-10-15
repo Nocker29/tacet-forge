@@ -39,6 +39,7 @@ export const updateEntries: UpdateEntry[] = [
     dateLabel: "October 15, 2026",
     items: [
       "Fixed echo sets for Phantom: Fae Ignis",
+      "Fixed echo sets for 13 more Phantom echoes to match their regular versions: Capitaneus, Diggy Duggy, Feilian Beringal, Hoartoise, Iceglint Dancer, Kerasaur, Lightcrusher, Nimbus Wraith, Rocksteady Guardian, Sentry Construct, Twin Nova - Collapsar Blade, Twin Nova - Nebulous Cannon, and Zip Zap",
     ],
   },
   {
