@@ -35,6 +35,13 @@ export const currentAnnouncement: Announcement | null = null;
 
 export const updateEntries: UpdateEntry[] = [
   {
+    date: "2026-10-15",
+    dateLabel: "October 15, 2026",
+    items: [
+      "Fixed echo sets for Phantom: Fae Ignis",
+    ],
+  },
+  {
     date: "2026-10-14",
     dateLabel: "October 14, 2026",
     items: [
