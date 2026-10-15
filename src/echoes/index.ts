@@ -3398,7 +3398,7 @@ CD: 20s.`,
     details: `An avian Tacet Discord prowling the Penitent's End. In darkness, its form blends into shadow, leaving only its mask flickering like ignis fatuus.`,
     modifiers: [],
     actions: [],
-    sets: ["MidnightVeil", "EternalRadiance"],
+    sets: ["MidnightVeil", "EternalRadiance", "DreamoftheLost"],
   },
   PhantomFallacyOfNoReturn: {
     key: "PhantomFallacyOfNoReturn",
