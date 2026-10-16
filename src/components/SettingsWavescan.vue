@@ -214,8 +214,7 @@
 
 <script setup lang="ts">
 /**
- * Labs-gated (`wavescanImport`) import of a Wavescan export, uploaded as a
- * file or pasted as text. Parsing,
+ * Import of a Wavescan export, uploaded as a file or pasted as text. Parsing,
  * validation and the append/replace plan live in src/wavescan/ (pure);
  * this panel only reads the file, asks how to apply it, and applies it.
  * See docs/wavescan-import.md and ADR 0038.

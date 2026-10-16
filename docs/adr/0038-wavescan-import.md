@@ -24,6 +24,8 @@ The existing "Import echoes" box in Backup & Restore pastes raw inventory rows s
   - Replace asks for confirmation first, with the counts.
 - **The pure part sits apart from the store.** `planWavescanEchoImport` works out what to add and remove without touching a store. `SettingsWavescan.vue` only reads the file, asks, and applies the plan.
 - **Behind a Labs flag.** The `wavescanImport` flag shows a "Wavescan" section in Settings (in both the v3 workspace and the legacy tabs) only when it's turned on.
+  **Superseded 2026-10-16:** the flag was removed and the Wavescan section is
+  always shown. See [wavescan-import.md](../wavescan-import.md).
 
 ## Not done yet
 

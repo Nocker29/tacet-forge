@@ -7,7 +7,6 @@ import SettingsWorkspace from "../../src/components/SettingsWorkspace.vue";
 import { useInventoryStore } from "../../src/stores/inventory";
 import { useCharacterStore } from "../../src/stores/character";
 import { getCostByClass, mainEchoesData } from "../../src/echoes";
-import { useSettingsStore } from "../../src/stores/settings";
 import { mapWavescanEchoes } from "../../src/wavescan/echoes";
 
 const confirmMock = vi.fn();
@@ -303,12 +302,9 @@ describe("SettingsWorkspace — Wavescan section", () => {
     setActivePinia(createPinia());
   });
 
-  it("only lists Wavescan when the lab is enabled", async () => {
+  it("always lists Wavescan, with no Labs flag needed", () => {
     const selector = '[data-test-workspace-nav-mobile-item="wavescan"]';
     const { container } = render(SettingsWorkspace);
-    expect(container.querySelector(selector)).toBeNull();
-
-    useSettingsStore().upsertLab({ wavescanImport: { isEnabled: true } });
-    await waitFor(() => expect(container.querySelector(selector)).not.toBeNull());
+    expect(container.querySelector(selector)).not.toBeNull();
   });
 });
