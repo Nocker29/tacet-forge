@@ -2,6 +2,7 @@
 status: accepted
 date: 2026-10-15
 tags: [scanner, data, interop, security]
+superseded_by: [42]
 ---
 
 # 41. Sign `scanner-data.json`, and publish Wavescan's pictures as `scanner-assets.json`
@@ -36,6 +37,7 @@ Wavescan now downloads `scanner-data.json` every time it opens, instead of only 
   - Pictures are made once, here, next to the data they belong to.
 - Cons:
   - Adding an echo or a set now needs `npm run scanner:icons`. CI says so.
+    **Superseded 2026-10-16:** CI runs it and commits the pictures to the PR ([ADR 0042](./0042-ci-commits-scanner-pictures.md)).
   - `scanner-icons.json` (about 1.3 MB) is committed.
   - A lost or leaked key needs a Wavescan release to rotate: Wavescan accepts a list of keys, so a new key can be added before the old one is removed.
   - `sharp` is a new dev dependency (image decoding and resizing, used only by the script).
@@ -43,6 +45,7 @@ Wavescan now downloads `scanner-data.json` every time it opens, instead of only 
 ## Guidance
 
 - **Do** run `npm run scanner:icons` after adding or changing an echo, a set, or an icon URL, and commit the result.
+  **Superseded 2026-10-16:** CI does this on PRs from this repo ([ADR 0042](./0042-ci-commits-scanner-pictures.md)).
 - **Don't** change `signingPayload`, the picture sizes or the processing without coordinating with Wavescan. The first breaks verification, the others change how sets are recognised.
 - **Don't** put the private key anywhere but Vercel and the password manager. It never goes in the repo, in CI logs, or in preview environments.
 
