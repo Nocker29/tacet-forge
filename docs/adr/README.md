@@ -38,7 +38,7 @@ Statuses: `proposed` · `accepted` · `deprecated` · `superseded`.
 
 ## Index
 
-Architecture ADRs (0001–0012, 0029, 0031, 0032, 0034, 0035, 0036, 0037, 0038, 0040, 0041) first, then redesign-chapter ADRs (0013+) in the order they shipped. **Superseded by** is blank unless a later ADR is known to replace part of that row's Decision — see that ADR for exactly which part.
+Architecture ADRs (0001–0012, 0029, 0031, 0032, 0034, 0035, 0036, 0037, 0038, 0040, 0041, 0042) first, then redesign-chapter ADRs (0013+) in the order they shipped. **Superseded by** is blank unless a later ADR is known to replace part of that row's Decision — see that ADR for exactly which part.
 
 | ADR | Title | Status | Superseded by | Tags |
 |-----|-------|--------|----------------|------|
@@ -64,7 +64,8 @@ Architecture ADRs (0001–0012, 0029, 0031, 0032, 0034, 0035, 0036, 0037, 0038, 
 | [0013](./0013-live-result-bar-labs-flag.md) | Live Result Bar (Labs-flagged layout) | accepted | 0018 (detail panel width), 0019 (bar/identity component merged into Command Bar), 0038 (v3 is the default; Labs flag retired) | calculator, components, stores |
 | [0038](./0038-wavescan-import.md) | Import Wavescan exports (Labs-flagged, echoes first) | accepted | 0040 (`equippedBy` equips loadouts) | scanner, interop, stores, components |
 | [0040](./0040-wavescan-equipped-loadouts.md) | Equip characters from a Wavescan export's `equippedBy` | accepted | | scanner, interop, stores, components |
-| [0041](./0041-signed-scanner-data-and-assets.md) | Sign `scanner-data.json`, and publish Wavescan's pictures as `scanner-assets.json` | accepted | | scanner, data, interop, security |
+| [0041](./0041-signed-scanner-data-and-assets.md) | Sign `scanner-data.json`, and publish Wavescan's pictures as `scanner-assets.json` | accepted | 0042 (CI makes the pictures) | scanner, data, interop, security |
+| [0042](./0042-ci-commits-scanner-pictures.md) | CI commits Wavescan's pictures to echo pull requests | accepted | | scanner, data, ci |
 | [0013](./0013-live-result-bar-labs-flag.md) | Live Result Bar (Labs-flagged layout) | accepted | 0018 (detail panel width), 0019 (bar/identity component merged into Command Bar) | calculator, components, stores |
 | [0014](./0014-echo-editor-redesign.md) | Echo display/edit redesign (Labs-flagged, shares the `liveResultBar` flag) | accepted | 0028 (Set Bonus/Main Echo Buff), 0030 (build-context panel → inline tile) | calculator, components, composables, inventory |
 | [0015](./0015-rotation-flow-labs-flag.md) | Rotation Flow (Labs-flagged, shares the `liveResultBar` flag) | accepted | | calculator, components, composables, stores |
