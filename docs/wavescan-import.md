@@ -1,6 +1,6 @@
 # Wavescan import
 
-Imports the JSON exported by Wavescan, the desktop scanner — uploaded as a file or pasted as text. It's behind the **Import with Wavescan** Labs flag (`settingsStore.labs.wavescanImport`). When the flag is on, Settings shows a **Wavescan** section: under "Your Data" in the v3 workspace, or as a tab in the legacy settings page. For the reasoning behind it, see [ADR 0038](adr/0038-wavescan-import.md).
+Imports the JSON exported by Wavescan, the desktop scanner — uploaded as a file or pasted as text. Settings always shows a **Wavescan** section: under "Your Data" in the v3 workspace, or as a tab in the legacy settings page. (It started behind a Labs flag, `wavescanImport`, which was removed on 2026-10-16.) For the reasoning behind it, see [ADR 0038](adr/0038-wavescan-import.md).
 
 ## Where the code lives
 

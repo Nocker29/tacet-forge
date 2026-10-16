@@ -35,6 +35,13 @@ export const currentAnnouncement: Announcement | null = null;
 
 export const updateEntries: UpdateEntry[] = [
   {
+    date: "2026-10-16",
+    dateLabel: "October 16, 2026",
+    items: [
+      "Import with Wavescan is out of Labs: the Wavescan section is now always in Settings, no flag needed",
+    ],
+  },
+  {
     date: "2026-10-15",
     dateLabel: "October 15, 2026",
     items: [
