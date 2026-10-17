@@ -343,7 +343,6 @@ function handleChosenCharacter(characterKey: string) {
   characterStore.setActiveCharacter(characterKey);
 }
 
-// The menu is open while focus is inside it (ThemeChooser.vue works the same way).
 function toggleOptionsMenu() {
   (document.activeElement as HTMLElement | null)?.blur();
 }
