@@ -1160,7 +1160,7 @@ export const setBonusEffectsTwo: Record<string, EchoSetBonus> = {
   "Frosty Resolve 5 Set": {
     key: "FrostyResolve5Set",
     name: "Frosty Resolve",
-    details: `Casting Resonance Skill grants <span class="Param">22.5%</span> <span class="Ice">Glacio</span> DMG Bonus for 15s and casting Resonance Liberation increases Resonance Skill DMG by <span class="Param">22.5%</span>, lasting for 5s. This effect stacks up to 2 times.`,
+    details: `Casting Resonance Skill grants <span class="Param">22.5%</span> <span class="Ice">Glacio</span> DMG Bonus for 15s and casting Resonance Liberation increases Resonance Skill DMG by <span class="Param">18%</span>, lasting for 5s. This effect stacks up to 2 times.`,
     passives: [
       {
         key: "FrostyResolve5Set5SetGlacioDMGBonus",
