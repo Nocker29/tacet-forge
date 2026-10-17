@@ -277,7 +277,7 @@ import { allCharactersList, getCharactersAvailable } from "../../characters/char
 import { useCharacterStore } from "../../stores/character";
 import { useSettingsStore } from "../../stores/settings";
 import { isV3UiEnabled } from "../../utils/uiVersion";
-import { trackEvent } from "../../utils/analytics";
+import { useClassicUi } from "../../composables/useClassicUi";
 
 defineOptions({
   name: "Nav",
@@ -352,11 +352,10 @@ function toggleOptionsMenu() {
   }
 }
 
-// Quick escape hatch back to the legacy UI while trying v3 - the same flag
-// SettingsLab.vue's toggle flips, just reachable without a trip to Settings.
+// Same switch as the theme menu's Interface → Classic (ADR 0038).
+const { setClassicUi } = useClassicUi();
 function switchToClassicUi() {
-  settingsStore.upsertLab({ liveResultBar: { isEnabled: false } });
-  trackEvent("v3-ui-disabled", { source: "nav" });
+  setClassicUi(true, "nav");
   toggleOptionsMenu();
 }
 </script>
