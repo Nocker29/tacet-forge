@@ -38,6 +38,10 @@ made for this whole redesign wave.
    convention of inlining icons directly rather than pulling in an icon
    library. The flag-off `<ul>` is untouched, byte-for-byte.
 
+   **Updated 2026-10-17:** both `<ul>`s now sit in a focus-driven DaisyUI
+   `dropdown`, the same box as the theme menu (`ThemeChooser.vue`), so the
+   menu closes on click-away; the flag-off list's classes changed with it.
+
 2. **No unread indicator of any kind — deliberately.** Updates and Info get
    ~1% and ~2% of site traffic respectively. A "new since last visit" badge
    would mean tracking a per-visitor last-seen timestamp and rendering an

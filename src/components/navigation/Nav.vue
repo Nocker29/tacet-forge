@@ -91,27 +91,28 @@
         <slot></slot>
       </div>
       <div class="navbar-end">
-        <ul class="menu menu-horizontal px-1">
+        <ul class="menu menu-horizontal p-0 gap-2">
           <ThemeChooser></ThemeChooser>
-          <li>
-            <details class="options-menu" data-test-options-menu>
-              <summary>
+          <!-- Same focus-driven dropdown as ThemeChooser.vue: it closes on click-away. -->
+          <div class="dropdown dropdown-end block" data-test-options-menu>
+            <div tabindex="0" role="button" class="btn btn-ghost btn-square" aria-label="More">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
-                  class="inline-block h-5 w-5 stroke-current">
+                  class="inline-block size-6 stroke-current">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="2"
                     d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
                 </svg>
-              </summary>
-              <!-- Labs flag "UI Overhaul 3.0" (liveResultBar) off: legacy flat list, untouched. -->
-              <ul
-                v-if="!isLiveResultBarEnabled"
-                class="subnav bg-base-300 rounded-t-none p-2 right-0 z-50">
+            </div>
+            <div
+              tabindex="0"
+              class="dropdown-content bg-base-200 text-base-content rounded-box top-px border border-white/5 shadow-2xl outline-1 outline-black/5 mt-16">
+              <!-- Classic UI: flat list. -->
+              <ul v-if="!isLiveResultBarEnabled" class="menu w-56">
                 <li class="mb-2">
                   <RouterLink
                     to="/settings"
@@ -171,11 +172,8 @@
                 </li>
               </ul>
 
-              <!-- Labs flag "UI Overhaul 3.0" (liveResultBar) on: grouped, icon dropdown. -->
-              <ul
-                v-else
-                class="subnav subnav--v3 bg-base-300 rounded-t-none p-2 right-0 z-50 w-52"
-                data-test-options-menu-v3>
+              <!-- v3 UI: grouped, with icons. -->
+              <ul v-else class="menu subnav--v3 w-56" data-test-options-menu-v3>
                 <li class="subnav__eyebrow">Workspace</li>
                 <li class="mb-1">
                   <RouterLink
@@ -256,8 +254,8 @@
                   </a>
                 </li>
               </ul>
-            </details>
-          </li>
+            </div>
+          </div>
         </ul>
       </div>
     </div>
@@ -345,11 +343,9 @@ function handleChosenCharacter(characterKey: string) {
   characterStore.setActiveCharacter(characterKey);
 }
 
+// The menu is open while focus is inside it (ThemeChooser.vue works the same way).
 function toggleOptionsMenu() {
-  const optionsMenu = document.querySelector(".options-menu");
-  if (optionsMenu) {
-    optionsMenu.removeAttribute("open");
-  }
+  (document.activeElement as HTMLElement | null)?.blur();
 }
 
 // Same switch as the theme menu's Interface → Classic (ADR 0038).
@@ -375,12 +371,6 @@ function switchToClassicUi() {
     color: inherit;
   }
 }
-.options-menu {
-  summary:after {
-    display: none;
-  }
-}
-
 .subnav--v3 {
   .subnav__eyebrow {
     font-size: 0.65rem;
