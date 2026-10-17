@@ -6,7 +6,7 @@
       class="btn group btn-ghost btn-square"
       aria-label="Change Theme">
       <div
-        class="bg-base-100 group-hover:border-base-content/20 border-base-content/10 grid size-6 shrink-0 grid-cols-2 place-content-center gap-1 rounded-md border transition-colors">
+        class="bg-base-100 group-hover:border-base-content/20 border-base-content/10 grid size-6 shrink-0 grid-cols-[repeat(2,auto)] place-content-center gap-1 rounded-md border transition-colors">
         <div class="bg-base-content size-1.5 rounded-full"></div>
         <div class="bg-primary size-1.5 rounded-full"></div>
         <div class="bg-secondary size-1.5 rounded-full"></div>
