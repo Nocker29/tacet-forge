@@ -91,22 +91,23 @@
         <slot></slot>
       </div>
       <div class="navbar-end">
-        <ul class="menu menu-horizontal p-0 gap-2">
+        <!-- relative z-[100]: keeps both dropdowns above the page content. -->
+        <div class="flex gap-2 relative z-[100]">
           <ThemeChooser></ThemeChooser>
           <!-- Same focus-driven dropdown as ThemeChooser.vue: it closes on click-away. -->
           <div class="dropdown dropdown-end block" data-test-options-menu>
             <div tabindex="0" role="button" class="btn btn-ghost btn-square" aria-label="More">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  class="inline-block size-6 stroke-current">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                </svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                class="inline-block size-6 stroke-current">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+              </svg>
             </div>
             <div
               tabindex="0"
@@ -256,7 +257,7 @@
               </ul>
             </div>
           </div>
-        </ul>
+        </div>
       </div>
     </div>
     <CalculatorCharacterBrowser
@@ -350,15 +351,12 @@ function toggleOptionsMenu() {
 // Same switch as the theme menu's Interface → Classic (ADR 0038).
 const { setClassicUi } = useClassicUi();
 function switchToClassicUi() {
-  setClassicUi(true, "nav");
+  setClassicUi(true, "utility-menu");
   toggleOptionsMenu();
 }
 </script>
 
 <style lang="scss" scoped>
-.menu {
-  z-index: 100;
-}
 // The global stylesheet still carries the Vite scaffold's default
 // `a:hover { color: #535bf2 }` (leftover boilerplate purple). It's invisible
 // on the image-based nav icons (img ignores `color`), but the home icon is
