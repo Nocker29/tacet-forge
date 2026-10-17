@@ -228,14 +228,14 @@
             class="btn btn-sm"
             data-test-optimizer-workspace-buffs-enable-all
             @click="enableAllBuffs">
-            Enable all
+            Enable All
           </button>
           <button
             type="button"
             class="btn btn-sm"
             data-test-optimizer-workspace-buffs-max-all
             @click="maxAllBuffs">
-            Max all
+            Max All
           </button>
         </div>
       </div>
