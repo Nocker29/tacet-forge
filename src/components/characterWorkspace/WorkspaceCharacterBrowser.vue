@@ -315,7 +315,9 @@ const charactersList = computed((): ListedCharacter[] => {
   if (props.excludeKeys.length) {
     characterList = characterList.filter((c) => !props.excludeKeys.includes(c.key));
   }
-  return characterList;
+  // Favorites first, then everyone else; A-Z within each.
+  const rank = (c: ListedCharacter) => (favoriteCharacters.value.includes(c.key) ? 0 : 1);
+  return characterList.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 });
 
 function triggerOpenModal() {
