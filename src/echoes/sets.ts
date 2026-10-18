@@ -784,7 +784,7 @@ export const setBonusEffectsOne: Record<string, EchoSetBonus> = {
     key: "SoundofTrueName2Set",
     passives: [
       {
-        key: "SoundofTrueName2Set",
+        key: "SoundofTrueName2SetAero",
         details: `Aero DMG + 10%`,
         modifiers: [
           {
@@ -924,7 +924,7 @@ export const setBonusEffectsOne: Record<string, EchoSetBonus> = {
     key: "HeartofSwornVigil2Set",
     passives: [
       {
-        key: "HeartofSwornVigilElectro",
+        key: "HeartofSwornVigil2SetElectro",
         details: `Electro DMG + 10%`,
         modifiers: [
           {
@@ -1617,6 +1617,7 @@ export const setBonusEffectsTwo: Record<string, EchoSetBonus> = {
     key: "SoundofTrueName5Set",
     passives: [
       {
+        // Kept from when the 2-piece shared it: saved builds store this toggle under this key.
         key: "SoundofTrueName2Set",
         details: `Dealing Echo Skill DMG to enemies increases the Resonator's Echo Skill Crit. Rate by 20%, and grants 15% Aero DMG Bonus for 5s.`,
         modifiers: [
