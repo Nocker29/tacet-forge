@@ -48,3 +48,10 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   older backup does the same.
 - Fix: importing a backup now restores which character uses which echo preset
   (`equippedPresets` was dropped by the inventory import).
+- **F4 – Select all echo sets.** The optimizer's set filter (classic and v3) gets a
+  "N/M sets" counter with Select all and Clear; set buttons now have their set name as
+  label/tooltip and expose their on/off state to screen readers. Both UIs still require at
+  least one set (the counter says so when none is picked); the run-bar chip from F3 shows
+  how many echoes the chosen sets leave.
+- Fix: removing an echo set, main echo or stat floor in the optimizer setup now always
+  saves (lodash `merge` never shortened the stored lists).

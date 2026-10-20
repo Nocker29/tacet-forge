@@ -86,6 +86,11 @@
             Only echoes from these sets are considered.
           </p>
         </div>
+        <OptimizerSetFilterControls
+          :selected-count="setFilters.length"
+          :total-count="echoSets.length"
+          @select-all="setAllSetFilters(true)"
+          @clear="setAllSetFilters(false)" />
         <OptimizerWorkspaceEchoSets
           :sets="echoSets"
           :selected="setFilters"
@@ -300,6 +305,7 @@ import CalculatorOptimizerEchoSet from "../CalculatorOptimizerEchoSet.vue";
 import CalculatorOptimizerMainEcho from "../CalculatorOptimizerMainEcho.vue";
 import CalculatorOptimizerSettings from "../CalculatorOptimizerSettings.vue";
 import OptimizerWorkspaceEchoSets from "./OptimizerWorkspaceEchoSets.vue";
+import OptimizerSetFilterControls from "../OptimizerSetFilterControls.vue";
 import OptimizerWorkspaceTarget from "./OptimizerWorkspaceTarget.vue";
 import OptimizerWorkspaceRunBar, {
   type OptimizerSetupSection,
@@ -500,6 +506,11 @@ function toggleSetFilter(set: string) {
   void syncOptimizerConfig();
 }
 
+function setAllSetFilters(selectAll: boolean) {
+  setFilters.value = selectAll ? [...echoSets.value] : [];
+  void syncOptimizerConfig();
+}
+
 function handleUpdatedTarget(target: unknown) {
   optimizationTarget.value = target;
   void syncOptimizerConfig();
@@ -522,6 +533,14 @@ async function syncOptimizerConfig() {
       loadoutFormat: loadoutFormat.value,
     },
   });
+  // setCharacterData's lodash merge never shortens arrays, so a removed set,
+  // main echo or stat floor would stay saved; write the lists outright.
+  const saved = characterStore.characters[props.character]?.optimizer;
+  if (saved) {
+    saved.mainEchoes = JSON.parse(JSON.stringify(mainEchoes.value));
+    saved.echoSets = JSON.parse(JSON.stringify(setFilters.value));
+    saved.minStats = JSON.parse(JSON.stringify(minStats.value));
+  }
 }
 
 function getEchoSetImage(echoSet: string) {

@@ -26,8 +26,9 @@ history is in [CHANGES.md](../CHANGES.md).
   **donors** are stored (`inventory.optimizerProtection = { donors }`), so anyone not listed
   — including characters who get echoes later — is protected. An echo is excluded if any
   holder is protected, unless the optimized character holds it too (it's already theirs).
-- Store: `src/stores/inventory.js` getters `echoHolders`, `optimizerDonors` (falls back to the
-  legacy toggle while nothing is stored), `protectionCandidates`, `protectedEchoIds`; actions
+- Store: `src/stores/inventory.js` getters `echoHolders`, `optimizerDonors` (`[]` — everyone
+  protected — until set; the legacy toggle is read only when seeding, never at runtime, because
+  the optimizer UIs still write it), `protectionCandidates`, `protectedEchoIds`; actions
   `setOptimizerDonors`, `ensureOptimizerProtection`.
 - Filter: `Calculator.vue` `handleOptimize` drops `protectedEchoIds(character)`; the old
   `ignoreOtherResonantorEchoes` argument/per-character field is kept for compatibility but no
@@ -39,3 +40,15 @@ history is in [CHANGES.md](../CHANGES.md).
   stores, so no per-store transform); `applyImportedDatabase` calls
   `ensureOptimizerProtection()` for imported backups. Tests: `tests/echoes/optimizerProtection.test.ts`,
   `tests/utils/forkBackupCompat.test.ts`.
+
+## Echo-set filter: Select all / Clear
+
+- `src/components/OptimizerSetFilterControls.vue` ("N/M sets", Select all, Clear), used by
+  `CalculatorOptimizer.vue` (classic) and `OptimizerWorkspaceSetup.vue` (v3).
+- Semantics are unchanged: both UIs require at least one set; `Calculator.vue` still treats an
+  empty list as "all sets" (`filterEchoesBySets`) but the UI never sends one.
+- `syncOptimizerConfig` in both components now writes `echoSets`/`mainEchoes`/`minStats`
+  outright after the merge, because `setCharacterData`'s lodash merge can't shorten arrays.
+- No pre-run combination estimate: the count is only known inside the generator workers, and
+  "Select all" can't make the search larger than picking every set by hand. The run-bar chip
+  shows how many echoes the chosen sets leave.

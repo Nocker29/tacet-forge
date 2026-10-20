@@ -10,15 +10,18 @@
           ? 'border-primary opacity-100'
           : 'border-transparent opacity-40 hover:opacity-70'
       "
+      :aria-pressed="isSelected(set)"
+      :aria-label="getEchoSetLabelByType(set)"
+      :title="getEchoSetLabelByType(set)"
       :data-test-optimizer-workspace-echo-set="set"
       @click="emit('toggle', set)">
-      <img :src="getEchoSetIconByType(set)" :alt="set" class="size-7" />
+      <img :src="getEchoSetIconByType(set)" alt="" class="size-7" />
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { getEchoSetIconByType } from "../../echoes/stats";
+import { getEchoSetIconByType, getEchoSetLabelByType } from "../../echoes/stats";
 
 defineOptions({ name: "OptimizerWorkspaceEchoSets" });
 

@@ -93,16 +93,26 @@
         class="optimizer-filters__sets card card-compact card-bordered bg-base-100 shadow-sm">
         <div class="card-body">
           <h3 class="mb-2">Choose echo sets</h3>
+          <OptimizerSetFilterControls
+            class="mb-2"
+            :selected-count="setFilters.length"
+            :total-count="echoSets.length"
+            @select-all="setAllSetFilters(true)"
+            @clear="setAllSetFilters(false)" />
           <div
             class="echo-filters__sets flex gap-1 flex-wrap"
             :class="{ 'echo-filters__sets--active': setFilters.length }">
             <button
               v-for="set in echoSets"
               :key="set"
+              type="button"
               @click="toggleSetFilter(set)"
               class="rounded p-[.3rem]"
-              :class="{ 'btn-active': isSetFilterActive(set) }">
-              <img :src="getSetIcon(set)" :alt="set" class="size-7" />
+              :class="{ 'btn-active': isSetFilterActive(set) }"
+              :aria-pressed="isSetFilterActive(set)"
+              :aria-label="getEchoSetLabelByType(set)"
+              :title="getEchoSetLabelByType(set)">
+              <img :src="getSetIcon(set)" alt="" class="size-7" />
             </button>
           </div>
           <h3 class="mt-6 mb-2">Choose main echoes</h3>
@@ -372,7 +382,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { echoSetLabelMap, getEchoSetIconByType } from "../echoes/stats";
+import { echoSetLabelMap, getEchoSetIconByType, getEchoSetLabelByType } from "../echoes/stats";
 import {
   getSetBonusEffectsFromListOfSetKeys,
   getSetLabelByKey,
@@ -388,6 +398,7 @@ import CalculatorOptimizerDamageType from "./CalculatorOptimizerDamageType.vue";
 import CalculatorOptimizerResults from "./CalculatorOptimizerResults.vue";
 import CalculatorOptimizerGuide from "./CalculatorOptimizerGuide.vue";
 import CalculatorOptimizerSettings from "./CalculatorOptimizerSettings.vue";
+import OptimizerSetFilterControls from "./OptimizerSetFilterControls.vue";
 import {
   normalizeLoadoutFormat,
   OPTIMIZER_EMPTY_REASON_MESSAGES,
@@ -659,6 +670,19 @@ async function syncOptimizerConfig() {
       loadoutFormat: loadoutFormat.value,
     },
   });
+  // setCharacterData's lodash merge never shortens arrays, so a removed set,
+  // main echo or stat floor would stay saved; write the lists outright.
+  const saved = characterStore.characters[props.character]?.optimizer;
+  if (saved) {
+    saved.mainEchoes = JSON.parse(JSON.stringify(mainEchoes.value));
+    saved.echoSets = JSON.parse(JSON.stringify(setFilters.value));
+    saved.minStats = JSON.parse(JSON.stringify(minStats.value));
+  }
+}
+
+function setAllSetFilters(selectAll: boolean) {
+  setFilters.value = selectAll ? [...echoSets.value] : [];
+  void syncOptimizerConfig();
 }
 
 function isSetFilterActive(set: string) {
