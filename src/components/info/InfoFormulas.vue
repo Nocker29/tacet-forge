@@ -48,8 +48,8 @@
 import { useDocumentTitle } from "../../composables/useDocumentTitle";
 
 useDocumentTitle(
-  "Formulas — Wuthering Waves Calculator & Optimizer",
-  "The damage, defense, resistance, healing, and negative status (DoT) formulas used by the Wuthering Waves Calculator & Optimizer.",
+  "Formulas — Tacet Forge",
+  "The damage, defense, resistance, healing, and negative status (DoT) formulas used by Tacet Forge.",
 );
 
 const formulaBlocks = [

@@ -58,7 +58,7 @@ describe("InfoView (classic UI, legacy)", () => {
     await router.isReady();
 
     expect(
-      screen.getByRole("heading", { name: "Wuthering Waves Calculator & Optimizer" }),
+      screen.getByRole("heading", { name: "Tacet Forge — Wuthering Waves Calculator & Optimizer" }),
     ).toBeInTheDocument();
     // The legacy article covers every section on one page - Formulas
     // included - even though the URL names a v3-only sub-path.
@@ -118,7 +118,13 @@ describe("InfoView (flag on, nested routes)", () => {
     await router.push("/info/credits");
     await router.isReady();
 
-    expect(screen.getByText("@LavaSnake", { exact: false })).toBeInTheDocument();
+    // Original credits stay, with the fork notice on top (GPL §5a).
+    expect(screen.getByText("Author: @LavaSnake")).toBeInTheDocument();
+    const notice = document.querySelector("[data-test-fork-notice]")!;
+    expect(notice.textContent).toContain("based on");
+    expect(notice.textContent).toContain("modified version");
+    expect(notice.querySelector('a[href="https://github.com/ryanbenson/wuthering-waves-optimizer"]')).not.toBeNull();
+    expect(notice.querySelector('a[href="https://github.com/Nocker29/tacet-forge"]')).not.toBeNull();
     expect(document.title).toContain("Credits");
   });
 });

@@ -1,8 +1,12 @@
-# Wuthering Waves Optimizer
+# Tacet Forge
 
-[Optimizer for your resonators and weapons and echoes](https://ryanbenson.github.io/wuthering-waves-optimizer/)
+A Wuthering Waves damage calculator and echo optimizer that runs entirely in the browser.
 
-See the project for more information on where things are at, and where things are going: https://github.com/users/ryanbenson/projects/2
+> **Fork notice.** Tacet Forge is a modified version of
+> [Wuthering Tools](https://github.com/ryanbenson/wuthering-waves-optimizer) by @LavaSnake
+> and contributors, licensed under the GNU GPL v3 or later ([LICENSE](./LICENSE)).
+> What changed in the fork is listed in [CHANGES.md](./CHANGES.md).
+> Not affiliated with Kuro Games. Non-commercial.
 
 ## UI & Tools
 

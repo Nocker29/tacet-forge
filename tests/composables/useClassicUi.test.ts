@@ -85,19 +85,4 @@ describe("reportClassicUiSession", () => {
     expect(track).toHaveBeenCalledTimes(1);
     expect(track).toHaveBeenCalledWith("classic-ui-session", undefined);
   });
-
-  it("queues the event until Umami has loaded", async () => {
-    useSettingsStore().addToConfig({ useClassicUi: true });
-    const { injectAnalytics } = await import("../../src/utils/analytics");
-    vi.stubEnv("VITE_UMAMI_WEBSITE_ID", "test-site");
-    injectAnalytics();
-    reportClassicUiSession();
-    expect(track).not.toHaveBeenCalled();
-
-    window.umami = { track } as any;
-    document.head.querySelector<HTMLScriptElement>('script[src="/assets/init.js"]')!
-      .dispatchEvent(new Event("load"));
-    expect(track).toHaveBeenCalledWith("classic-ui-session", undefined);
-    vi.unstubAllEnvs();
-  });
 });

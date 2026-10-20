@@ -33,6 +33,7 @@
           Import
         </a>
         <a
+          v-if="SCANNER_ENABLED"
           href="#"
           class="tab-link text-base-content px-4 py-2"
           :class="getActiveClasses('wavescan')"
@@ -63,7 +64,7 @@
         <SettingsPreferences v-if="tab === 'preferences'" />
         <SettingsExport v-if="tab === 'export'" />
         <SettingsImport v-if="tab === 'import'" />
-        <SettingsWavescan v-if="tab === 'wavescan'" />
+        <SettingsWavescan v-if="SCANNER_ENABLED && tab === 'wavescan'" />
         <SettingsDelete v-if="tab === 'advanced'" />
         <SettingsLabs v-if="tab === 'labs'" />
       </div>
@@ -79,6 +80,7 @@ import SettingsImport from "./SettingsImport.vue";
 import SettingsLabs from "./SettingsLabs.vue";
 import SettingsPreferences from "./SettingsPreferences.vue";
 import SettingsWavescan from "./SettingsWavescan.vue";
+import { SCANNER_ENABLED } from "../utils/forkFeatures";
 
 type SettingsTab =
   | "preferences"

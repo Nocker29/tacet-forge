@@ -3,11 +3,12 @@
 
   <!-- Labs flag "UI Overhaul 3.0" (liveResultBar) off: legacy content, untouched. -->
   <article v-if="!isLiveResultBarEnabled" class="prose page-info">
-    <h1>Legal Disclaimer for Wuthering Tools</h1>
+    <h1>Legal Disclaimer for Tacet Forge</h1>
     <p>
-      <strong>Wuthering Tools</strong>
+      <strong>Tacet Forge</strong>
       is a fan-made, non-commercial application created for the enjoyment and
-      convenience of the Wuthering Waves community. This application is
+      convenience of the Wuthering Waves community. It is a modified version of
+      the open-source Wuthering Tools project, released under the GNU GPL v3. This application is
       <strong>
         not affiliated with, endorsed by, sponsored by, or approved by Kuro
         Games
@@ -28,11 +29,11 @@
 
     <h2>Non-Commercial Use</h2>
     <p>
-      Wuthering Tools is a
+      Tacet Forge is a
       <strong>non-commercial project</strong>
       . This application is provided free of charge and will never require any
-      payment, subscriptions, or in-app purchases. The creators of Wuthering
-      Tools will
+      payment, subscriptions, or in-app purchases. The creators of Tacet
+      Forge will
       <strong>never monetize or profit from this application</strong>
       .
     </p>
@@ -40,7 +41,7 @@
     <h2>Contact & Content Removal</h2>
     <p>
       If you are a representative of Kuro Games or another copyright holder and
-      have any concerns regarding the content within Wuthering Tools, please
+      have any concerns regarding the content within Tacet Forge, please
       contact us immediately. We are committed to honoring all copyright and
       trademark rights and will
       <strong>promptly remove or alter any content</strong>
@@ -48,8 +49,7 @@
     </p>
     <p>
       You can contact us by
-      <a href="https://discord.gg/pDKjxNjJWW">joining the Discord</a>
-      and contacting the app developers directly.
+      <a :href="FORK_ISSUES_URL" target="_blank" rel="noopener">opening an issue on GitHub</a>.
     </p>
   </article>
 
@@ -58,9 +58,11 @@
     <h1 class="text-2xl font-bold mb-4">Legal</h1>
     <div class="bg-base-200 rounded-xl p-4 flex flex-col gap-4">
       <p class="text-sm opacity-80">
-        <strong class="text-base-content">Wuthering Tools</strong>
+        <strong class="text-base-content">Tacet Forge</strong>
         is a fan-made, non-commercial application created for the enjoyment
-        and convenience of the Wuthering Waves community. This application
+        and convenience of the Wuthering Waves community. It is a modified
+        version of the open-source Wuthering Tools project, released under
+        the GNU GPL v3. This application
         is
         <strong class="text-base-content">
           not affiliated with, endorsed by, sponsored by, or approved by Kuro
@@ -84,11 +86,11 @@
           Non-Commercial Use
         </div>
         <p class="text-sm opacity-80">
-          Wuthering Tools is a
+          Tacet Forge is a
           <strong class="text-base-content">non-commercial project</strong>.
           This application is provided free of charge and will never require
           any payment, subscriptions, or in-app purchases. The creators of
-          Wuthering Tools will
+          Tacet Forge will
           <strong class="text-base-content">
             never monetize or profit from this application
           </strong>.
@@ -102,7 +104,7 @@
         <p class="text-sm opacity-80">
           If you are a representative of Kuro Games or another copyright
           holder and have any concerns regarding the content within
-          Wuthering Tools, please contact us immediately. We are committed
+          Tacet Forge, please contact us immediately. We are committed
           to honoring all copyright and trademark rights and will
           <strong class="text-base-content">
             promptly remove or alter any content
@@ -111,8 +113,7 @@
         </p>
         <p class="text-sm opacity-80 mt-2">
           You can contact us by
-          <a href="https://discord.gg/pDKjxNjJWW" class="link">joining the Discord</a>
-          and contacting the app developers directly.
+          <a :href="FORK_ISSUES_URL" target="_blank" rel="noopener" class="link">opening an issue on GitHub</a>.
         </p>
       </div>
     </div>
@@ -124,6 +125,7 @@ import { computed } from "vue";
 import Nav from "../components/navigation/Nav.vue";
 import { useSettingsStore } from "../stores/settings";
 import { isV3UiEnabled } from "../utils/uiVersion";
+import { FORK_ISSUES_URL } from "../utils/forkInfo";
 
 const settingsStore = useSettingsStore();
 const isLiveResultBarEnabled = computed(

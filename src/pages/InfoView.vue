@@ -6,7 +6,7 @@
        nothing links to a /info/* sub-path unless the flag-on mini-nav
        produced the link, so this is a safe fallback). -->
   <article v-if="!isLiveResultBarEnabled" class="prose page-info">
-    <h1>Wuthering Waves Calculator & Optimizer</h1>
+    <h1>Tacet Forge — Wuthering Waves Calculator &amp; Optimizer</h1>
     <p>
       A free, browser-based toolkit for planning and optimizing your
       Wuthering Waves account. Configure a character like you would in the
@@ -145,20 +145,17 @@
       285560 = 3674 × ( 1 + 850.00% ) × ( 139726 ÷ 10000 ) ×
       61.9619097312% × 90.0% × ( 1 + 5.0% )
     </code>
-    <h3>Community</h3>
+    <h3>About this version</h3>
     <p>
-      If you want to keep up with the latest, or have any ideas, or see any
-      bugs?
-      <a href="https://discord.gg/pDKjxNjJWW" target="_blank">
-        Join the Discord!
-      </a>
+      {{ APP_NAME }} is based on
+      <a :href="UPSTREAM_REPO_URL" target="_blank" rel="noopener">{{ UPSTREAM_NAME }}</a>
+      by @LavaSnake and contributors. This is a modified version, licensed under the
+      GNU GPL v3 like the original; see CHANGES.md in the source for what changed.
       <br />
-      Prefer to browse the source or file an issue directly?
-      <a href="https://github.com/ryanbenson/wuthering-waves-optimizer" target="_blank">
-        View it on GitHub.
-      </a>
+      Source code and bug reports:
+      <a :href="FORK_REPO_URL" target="_blank" rel="noopener">{{ APP_NAME }} on GitHub</a>.
     </p>
-    <h3>Developers</h3>
+    <h3>Original developers</h3>
     <ul>
       <li>Author: @LavaSnake</li>
       <li>Contributors: @flysand</li>
@@ -203,6 +200,7 @@ import WorkspaceSideNav, {
 import { useSettingsStore } from "../stores/settings";
 import { isV3UiEnabled } from "../utils/uiVersion";
 import { useDocumentTitle } from "../composables/useDocumentTitle";
+import { APP_NAME, FORK_REPO_URL, UPSTREAM_NAME, UPSTREAM_REPO_URL } from "../utils/forkInfo";
 
 const settingsStore = useSettingsStore();
 const isLiveResultBarEnabled = computed(
@@ -214,8 +212,8 @@ const isLiveResultBarEnabled = computed(
 // article). When the flag is on, each Info* child overrides this with its
 // own more specific title via the same composable.
 useDocumentTitle(
-  "Info — Wuthering Waves Calculator & Optimizer",
-  "What the Wuthering Waves Calculator & Optimizer can do: damage calculator, echo optimizer, Echo Rating, convene simulator, inventory, and more.",
+  "Info — Tacet Forge",
+  "What Tacet Forge can do: damage calculator, echo optimizer, Echo Rating, convene simulator, inventory, and more.",
 );
 
 function svgIcon(paths: string) {

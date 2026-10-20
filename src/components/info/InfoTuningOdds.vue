@@ -207,7 +207,7 @@ import {
 defineOptions({ name: "InfoTuningOdds" });
 
 useDocumentTitle(
-  "Tuning planner — Wuthering Waves Calculator & Optimizer",
+  "Tuning planner — Tacet Forge",
   "How likely a fresh Wuthering Waves echo is to tune into the substats you want, and how many tuners it costs.",
 );
 

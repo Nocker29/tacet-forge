@@ -1,4 +1,3 @@
 User-agent: *
-Disallow: 
+Disallow:
 Disallow: /cgi-bin/
-Sitemap: https://www.wutheringtools.com/sitemap.xml

@@ -761,6 +761,7 @@ import InventoryEchoEditPanel from "./InventoryEchoEditPanel.vue";
 import EchoOddsDialog from "./EchoOddsDialog.vue";
 import CalculatorEchoImporter from "./CalculatorEchoImporter.vue";
 import EchoScannerModal from "./EchoScannerModal.vue";
+import { SCANNER_ENABLED } from "../utils/forkFeatures";
 import PaginationControls from "./PaginationControls.vue";
 import AppRichSelect, {
   type AppRichSelectOption,
@@ -812,7 +813,7 @@ const isLiveResultBarEnabled = computed(
   () => isV3UiEnabled(settingsStore),
 );
 const isEchoScanningEnabled = computed(
-  () => settingsStore.labs?.echoScanning?.isEnabled ?? false,
+  () => SCANNER_ENABLED && (settingsStore.labs?.echoScanning?.isEnabled ?? false),
 );
 const echoesImporter = ref<InstanceType<typeof CalculatorEchoImporter> | null>(
   null,

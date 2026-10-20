@@ -1,13 +1,12 @@
 {
-  "name": "wuthering-waves-optimizer",
+  "name": "tacet-forge",
   "private": false,
   "version": "0.0.1",
   "author": "Ryan Benson <benson.ryan@gmail.com> (http://ryanbenson.dev/)",
-  "homepage": "https://github.com/ryanbenson/wuthering-waves-optimizer",
+  "homepage": "https://github.com/Nocker29/tacet-forge",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/ryanbenson/wuthering-waves-optimizer/issues",
-    "email": "benson.ryan@gmail.com"
+    "url": "https://github.com/Nocker29/tacet-forge/issues"
   },
   "license": "GPL-3.0-or-later",
   "engines": {

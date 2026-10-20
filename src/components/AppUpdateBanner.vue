@@ -98,7 +98,7 @@
       <p class="text-xs opacity-50 mt-4">
         Prefer the previous layout? The classic UI is still available for now: switch to it here,
         from the theme menu, or in Settings. Your builds and echoes are shared between both. If
-        you find issues or have suggestions, drop them in the Discord.
+        you find issues or have suggestions, report them on GitHub.
       </p>
       <div class="modal-action flex-wrap">
         <RouterLink to="/updates" class="btn btn-ghost btn-sm" @click="closeWhatsNew">

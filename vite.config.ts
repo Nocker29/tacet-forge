@@ -7,6 +7,7 @@ import { buildScannerDataFile } from "./src/scanner/scannerData";
 import { buildScannerAssetsFile } from "./src/scanner/scannerAssets";
 import { SCANNER_ASSETS_FILE_NAME, signScannerData, type ScannerDataSigner } from "./src/scanner/scannerSignature";
 import { SIGNING_KEY_ENV, signerFromPrivateKey } from "./scripts/scannerDataKey";
+import { SCANNER_ENABLED } from "./src/utils/forkFeatures";
 
 /**
  * Publishes /scanner-data.json (game data for the Wavescan desktop scanner, ADR 0035) and
@@ -17,6 +18,8 @@ import { SIGNING_KEY_ENV, signerFromPrivateKey } from "./scripts/scannerDataKey"
  * scanner-data.json is signed with the key in SCANNER_DATA_SIGNING_KEY (ADR 0041). Only
  * Vercel production has it; a production deploy without it fails, so an unsigned file never
  * replaces a signed one. Other builds publish it unsigned, and Wavescan ignores those.
+ *
+ * Tacet Forge: skipped entirely while SCANNER_ENABLED is false, so the build needs no key.
  */
 function scannerDataPlugin(): Plugin {
   const fileName = "scanner-data.json";
@@ -54,7 +57,7 @@ function scannerDataPlugin(): Plugin {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue(), scannerDataPlugin()],
+  plugins: [vue(), ...(SCANNER_ENABLED ? [scannerDataPlugin()] : [])],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

@@ -478,16 +478,16 @@
       v-if="isMissingSpectroData"
       class="card card-bordered card-compact shadow my-6 bg-primary">
       <div class="card-body text-white">
-        We do not have Spectro Frazzle data for this character level. Join the
-        Discord and help us fill out this data!
+        We do not have Spectro Frazzle data for this character level. If you
+        have it, open an issue on GitHub and help us fill out this data!
       </div>
     </div>
     <div
       v-if="isMissingAeroErosionData"
       class="card card-bordered card-compact shadow my-6 bg-primary">
       <div class="card-body text-white">
-        We do not have Aero Erosion data for this character level / stacks. Join
-        the Discord and help us fill out this data!
+        We do not have Aero Erosion data for this character level / stacks. If you
+        have it, open an issue on GitHub and help us fill out this data!
       </div>
     </div>
     <table

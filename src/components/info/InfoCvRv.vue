@@ -83,7 +83,7 @@ import { ECHO_RATING_GRADES } from "../../echoes/rating";
 import { getRatingBadgeClasses } from "../../composables/useEchoRating";
 
 useDocumentTitle(
-  "CV & Echo Rating — Wuthering Waves Calculator & Optimizer",
+  "CV & Echo Rating — Tacet Forge",
   "What CV (Crit Value), Echo Rating, and Substat Score mean for Wuthering Waves echo substats.",
 );
 </script>

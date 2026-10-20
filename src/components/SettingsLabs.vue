@@ -2,7 +2,7 @@
   <template v-if="variant === 'v3'">
     <p class="text-sm opacity-60 mb-4 max-w-xl">
       Features that are still in progress. Turn any of these on to try them
-      early — expect rough edges, and drop what you find in the Discord.
+      early — expect rough edges, and report what you find on GitHub.
     </p>
     <div class="flex flex-col gap-3">
       <SettingsLab
@@ -26,7 +26,7 @@
       Enable any of these features if you want to test them out. Know that they
       are a in progress and may have bugs or issues.
       <br />
-      If you find anything, communicate them in the Discord.
+      If you find anything, report it on GitHub.
     </p>
     <template v-if="!labsFeatures.length">
       <div role="alert" class="alert shadow-lg mt-4">
@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import SettingsLab from "./SettingsLab.vue";
+import { SCANNER_ENABLED } from "../utils/forkFeatures";
 
 withDefaults(defineProps<{ variant?: "legacy" | "v3" }>(), {
   variant: "legacy",
@@ -70,12 +71,12 @@ withDefaults(defineProps<{ variant?: "legacy" | "v3" }>(), {
 type LabFeature = { key: string; label: string; details: string };
 
 const labsFeatures = ref<LabFeature[]>([
-  {
+  ...(SCANNER_ENABLED ? [{
     key: "echoScanning",
     label: "Echo scanning",
     details:
       "Adds a \"Scan echoes\" button to your inventory. Share your game window (or upload a recording) while browsing your in-game Echo list and it reads each echo's stats automatically — everything runs in your browser, nothing is uploaded anywhere. Still being tuned for accuracy.",
-  },
+  }] : []),
 ]);
 </script>
 

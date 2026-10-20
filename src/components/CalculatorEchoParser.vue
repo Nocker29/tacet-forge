@@ -39,7 +39,7 @@
         languages.
       </li>
       <li>
-        Hop into the main WuWa Discord, or our WutheringTools Discord to use the
+        Hop into the official WuWa Discord to use the
         bot. Type /bind to connect your account ,then /create to generate the
         image. The bot is made by Kuro, so your account information is safe.
       </li>
@@ -138,7 +138,7 @@
       <div class="collapse-title text-sm font-semibold">Tips &amp; how to get the image</div>
       <div class="collapse-content text-sm">
         <ul class="list-disc list-inside space-y-1">
-          <li>In the WuWa Discord (or ours), run <code>/bind</code> once, then <code>/create</code> to generate the image. The bot is made by Kuro, so your account is safe.</li>
+          <li>In the official WuWa Discord, run <code>/bind</code> once, then <code>/create</code> to generate the image. The bot is made by Kuro, so your account is safe.</li>
           <li>Use the bot's original image. Re-uploads through Discord, Reddit, etc. lower quality and hurt parsing.</li>
           <li>Parsing takes a moment and isn't perfect — check the results afterwards.</li>
           <li>English only for now.</li>

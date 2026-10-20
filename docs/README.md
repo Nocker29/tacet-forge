@@ -11,6 +11,7 @@ Root agent briefing: [CLAUDE.md](../CLAUDE.md).
 | Area | Description | Doc |
 |------|-------------|-----|
 | **Context** | Priorities (accuracy → performance → …), mental model, glossary | [context.md](./context.md) |
+| **Fork hosting** | Tacet Forge: running locally, hosting, image hotlink vs mirror | [fork-hosting.md](./fork-hosting.md) |
 | **Conventions** | Branch naming, commit/PR title format | [conventions.md](./conventions.md) |
 | **ADRs** | Architecture decision records | [adr/](./adr/) |
 | **Architecture** | Vue 3, types, performance, testing, UI, workers | [architecture.md](./architecture.md) |

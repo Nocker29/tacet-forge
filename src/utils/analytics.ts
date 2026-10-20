@@ -1,38 +1,12 @@
-// Ad-block-resistant analytics via Umami Cloud, reverse-proxied through this app's own
-// domain (see vercel.json rewrites) so requests are same-origin and use nondescript paths.
-export function injectAnalytics() {
-  const websiteId = import.meta.env.VITE_UMAMI_WEBSITE_ID;
-  if (!websiteId || window?.Cypress) {
-    return;
-  }
-
-  const script = document.createElement("script");
-  script.defer = true;
-  script.src = "/assets/init.js";
-  script.dataset.websiteId = websiteId;
-  script.dataset.hostUrl = "/e";
-  script.addEventListener("load", flushPendingEvents);
-  document.head.appendChild(script);
-}
+// Tacet Forge: analytics are disabled. The fork never loads the Umami script (the
+// injector and the vercel.json proxy rewrites were removed), so `window.umami` is
+// never defined and these calls are no-ops. They stay so call sites don't change.
 
 export function trackEvent(eventName: string, data?: Record<string, unknown>) {
   window.umami?.track(eventName, data);
 }
 
-// Events fired before the deferred Umami script has loaded (e.g. on app start).
-const pendingEvents: Array<[string, Record<string, unknown> | undefined]> = [];
-
-function flushPendingEvents() {
-  for (const [eventName, data] of pendingEvents.splice(0)) {
-    window.umami?.track(eventName, data);
-  }
-}
-
-/** Like `trackEvent`, but queues the event until Umami has loaded instead of dropping it. */
+/** Kept for API compatibility; with no analytics script it sends nothing. */
 export function trackEventWhenReady(eventName: string, data?: Record<string, unknown>) {
-  if (window.umami) {
-    window.umami.track(eventName, data);
-  } else {
-    pendingEvents.push([eventName, data]);
-  }
+  window.umami?.track(eventName, data);
 }

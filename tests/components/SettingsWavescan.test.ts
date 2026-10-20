@@ -7,6 +7,7 @@ import SettingsWorkspace from "../../src/components/SettingsWorkspace.vue";
 import { useInventoryStore } from "../../src/stores/inventory";
 import { useCharacterStore } from "../../src/stores/character";
 import { getCostByClass, mainEchoesData } from "../../src/echoes";
+import { SCANNER_ENABLED } from "../../src/utils/forkFeatures";
 import { mapWavescanEchoes } from "../../src/wavescan/echoes";
 
 const confirmMock = vi.fn();
@@ -302,9 +303,10 @@ describe("SettingsWorkspace — Wavescan section", () => {
     setActivePinia(createPinia());
   });
 
-  it("always lists Wavescan, with no Labs flag needed", () => {
+  // Tacet Forge: the scanner is switched off (src/utils/forkFeatures.ts).
+  it("lists Wavescan only while the scanner is enabled", () => {
     const selector = '[data-test-workspace-nav-mobile-item="wavescan"]';
     const { container } = render(SettingsWorkspace);
-    expect(container.querySelector(selector)).not.toBeNull();
+    expect(container.querySelector(selector) !== null).toBe(SCANNER_ENABLED);
   });
 });

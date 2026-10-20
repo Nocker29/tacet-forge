@@ -16,7 +16,7 @@
         <SettingsPreferences v-if="activeSection === 'preferences'" variant="v3" />
         <SettingsBackupRestore v-else-if="activeSection === 'backup-restore'" />
         <SettingsDelete v-else-if="activeSection === 'danger-zone'" variant="v3" />
-        <SettingsWavescan v-else-if="activeSection === 'wavescan'" />
+        <SettingsWavescan v-else-if="SCANNER_ENABLED && activeSection === 'wavescan'" />
         <SettingsLabs v-else-if="activeSection === 'labs'" variant="v3" />
       </div>
     </div>
@@ -38,6 +38,7 @@ import SettingsDelete from "./SettingsDelete.vue";
 import SettingsLabs from "./SettingsLabs.vue";
 import SettingsPreferences from "./SettingsPreferences.vue";
 import SettingsWavescan from "./SettingsWavescan.vue";
+import { SCANNER_ENABLED } from "../utils/forkFeatures";
 import WorkspaceSideNav, { type WorkspaceNavGroup } from "./WorkspaceSideNav.vue";
 
 // Hand-inlined icons (rendered via v-html), matching the convention already
@@ -74,13 +75,14 @@ const sectionGroups = computed<WorkspaceNavGroup[]>(() => [
     label: "Your Data",
     items: [
       { id: "backup-restore", label: "Backup & Restore", icon: ICONS.backupRestore },
-      { id: "wavescan", label: "Wavescan", icon: ICONS.wavescan },
+      ...(SCANNER_ENABLED ? [{ id: "wavescan", label: "Wavescan", icon: ICONS.wavescan }] : []),
       { id: "danger-zone", label: "Danger Zone", icon: ICONS.dangerZone },
     ],
   },
   {
     label: "Labs",
-    items: [{ id: "labs", label: "Labs", icon: ICONS.labs, badge: "1" }],
+    // The only lab (echo scanning) is behind SCANNER_ENABLED.
+    items: [{ id: "labs", label: "Labs", icon: ICONS.labs, ...(SCANNER_ENABLED ? { badge: "1" } : {}) }],
   },
 ]);
 

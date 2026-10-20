@@ -71,7 +71,7 @@
 import { useDocumentTitle } from "../../composables/useDocumentTitle";
 
 useDocumentTitle(
-  "Info — Wuthering Waves Calculator & Optimizer",
-  "What the Wuthering Waves Calculator & Optimizer can do: damage calculator, echo optimizer, Echo Rating, convene simulator, inventory, and more.",
+  "Info — Tacet Forge",
+  "What Tacet Forge can do: damage calculator, echo optimizer, Echo Rating, convene simulator, inventory, and more.",
 );
 </script>

@@ -7,19 +7,27 @@
        which is why it looked different in text formatting from the rest. -->
   <div v-if="!isLiveResultBarEnabled" class="page-privacy prose">
     <h1>Privacy Policy</h1>
-    <h2>Analytics</h2>
+    <h2>No analytics</h2>
     <p>
-      We use privacy-first analytics, so no personal or identifiable information
-      is stored or collected about you and we don't use cookies for analytics.
-      <a href="https://umami.is" rel="noreferrer"> Umami </a>
+      This app has no analytics, tracking, ads, or cookies. We don't collect
+      any information about you or how you use it.
     </p>
     <h2>Your data (builds, inventory, settings)</h2>
     <p>
       Everything you enter — characters, builds, echo inventory, settings —
       is stored only in your browser's local storage, on your own device.
       None of it is sent to us or to any server; we have no account system
-      and nothing to log in to.
+      and nothing to log in to. Use Settings → Backup &amp; Restore to keep a
+      copy, since clearing your browser data deletes it.
     </p>
+    <h2>Images and fonts</h2>
+    <p>
+      Character, weapon, and echo images and the app's font are loaded from
+      third-party hosts (image CDNs and Google Fonts), which can see your IP
+      address like any website you visit. No build data is sent with those
+      requests.
+    </p>
+    <template v-if="SCANNER_ENABLED">
     <h2>Echo scanner (screen share / video upload)</h2>
     <p>
       The optional echo scanner (Labs → Echo scanning) lets you share your
@@ -30,6 +38,7 @@
       you're done. Closing the scanner (including pressing Escape) stops
       screen sharing immediately, the same as clicking "Stop scanning."
     </p>
+    </template>
     <h2>Changes</h2>
     <p>
       Changes may occur to this policy at any time, so check back to this for
@@ -43,13 +52,11 @@
     <div class="bg-base-200 rounded-xl p-4 flex flex-col gap-4">
       <div>
         <div class="text-[.65rem] font-bold uppercase tracking-wider opacity-50 mb-2">
-          Analytics
+          No analytics
         </div>
         <p class="text-sm opacity-80">
-          We use privacy-first analytics — no personal or identifiable
-          information is stored or collected about you, and we don't use
-          cookies for analytics.
-          <a href="https://umami.is" rel="noreferrer" class="link">Umami</a>.
+          This app has no analytics, tracking, ads, or cookies. We don't
+          collect any information about you or how you use it.
         </p>
       </div>
       <div class="border-t border-base-300 pt-4">
@@ -60,10 +67,23 @@
           Everything you enter — characters, builds, echo inventory,
           settings — is stored only in your browser's local storage, on
           your own device. None of it is sent to us or to any server; we
-          have no account system and nothing to log in to.
+          have no account system and nothing to log in to. Use Settings →
+          Backup &amp; Restore to keep a copy, since clearing your browser
+          data deletes it.
         </p>
       </div>
       <div class="border-t border-base-300 pt-4">
+        <div class="text-[.65rem] font-bold uppercase tracking-wider opacity-50 mb-2">
+          Images and fonts
+        </div>
+        <p class="text-sm opacity-80">
+          Character, weapon, and echo images and the app's font are loaded
+          from third-party hosts (image CDNs and Google Fonts), which can
+          see your IP address like any website you visit. No build data is
+          sent with those requests.
+        </p>
+      </div>
+      <div v-if="SCANNER_ENABLED" class="border-t border-base-300 pt-4">
         <div class="text-[.65rem] font-bold uppercase tracking-wider opacity-50 mb-2">
           Echo scanner (screen share / video upload)
         </div>
@@ -96,6 +116,7 @@ import { computed } from "vue";
 import Nav from "../components/navigation/Nav.vue";
 import { useSettingsStore } from "../stores/settings";
 import { isV3UiEnabled } from "../utils/uiVersion";
+import { SCANNER_ENABLED } from "../utils/forkFeatures";
 
 const settingsStore = useSettingsStore();
 const isLiveResultBarEnabled = computed(
