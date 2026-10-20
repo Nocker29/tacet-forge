@@ -91,8 +91,8 @@ const emit = defineEmits<{
   ];
 }>();
 
-// No longer editable (protected characters replace it); passed through
-// unchanged so saving other settings doesn't rewrite the stored legacy value.
+// No longer editable or read by the optimizer (protected characters replace
+// it); still emitted so the parents' settings payload keeps its shape.
 const ignoreOtherResonantorEchoes = ref(false);
 const loadoutFormat = ref<OptimizerLoadoutFormat>("Any");
 

@@ -31,6 +31,20 @@ export interface OptimizerProtectionState {
   donors: string[];
 }
 
+/**
+ * Keeps echoes in one of `setFilters` (every set when it's empty) — the
+ * optimizer's set filter, shared by the run (Calculator.vue) and the run bar's
+ * count so they can't drift. Apply `filterEchoesForOptimizer` first.
+ */
+export function filterEchoesBySets<T extends { echoSet?: string | null }>(
+  echoes: readonly T[],
+  setFilters: readonly string[],
+): T[] {
+  if (!setFilters.length) return [...echoes];
+  const allowed = new Set(setFilters);
+  return echoes.filter((echo) => allowed.has(echo.echoSet ?? ""));
+}
+
 /** echoId → characters holding it (equipped, or in their assigned preset). */
 export function getEchoHolders(
   equipped: EquippedMap | null | undefined,
@@ -172,11 +186,12 @@ export function deriveLegacyDonors(
   characters: Record<string, { optimizer?: { ignoreOtherResonantorEchoes?: unknown } } | null | undefined> | null | undefined,
   holders: Map<string, Set<string>>,
 ): string[] {
-  const values = Object.values(characters ?? {}).map(
-    (record) => record?.optimizer?.ignoreOtherResonantorEchoes,
+  // The settings component's prop also accepted strings, so read "true"/"false" too.
+  const values = Object.values(characters ?? {}).map((record) =>
+    String(record?.optimizer?.ignoreOtherResonantorEchoes),
   );
-  if (values.includes(true)) return [];
-  if (values.includes(false)) return listProtectionCandidates(holders);
+  if (values.includes("true")) return [];
+  if (values.includes("false")) return listProtectionCandidates(holders);
   return [];
 }
 

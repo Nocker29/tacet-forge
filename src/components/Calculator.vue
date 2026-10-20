@@ -565,6 +565,7 @@ import { resolveOptimizerWorkerCount } from "../utils/optimizerPreferences";
 import { trackEvent } from "../utils/analytics";
 import { useRoute, useRouter } from "vue-router";
 import { resolveInitialCalculatorScreen } from "../utils/calculatorScreen";
+import { filterEchoesBySets } from "../echoes/optimizerProtection";
 import Nav from "./navigation/Nav.vue";
 import CalculatorMobileSubNav from "./navigation/CalculatorMobileSubNav.vue";
 import CalculatorSubNav from "./navigation/CalculatorSubNav.vue";
@@ -1485,14 +1486,15 @@ export default defineComponent({
       const setFilteredCount = allowedSets.size
         ? inventoryEchoes.filter((e) => allowedSets.has(e.echoSet)).length
         : inventoryEchoes.length;
-      let filteredEchoes = filterEchoesForOptimizer(echoes) as typeof echoes;
-      if (allowedSets.size) {
-        filteredEchoes = filteredEchoes.filter((e) => allowedSets.has(e.echoSet));
-      }
+      let filteredEchoes = filterEchoesBySets(
+        filterEchoesForOptimizer(echoes) as typeof echoes,
+        setFilters,
+      );
       // Protected characters (Tacet Forge) replace the old per-character
       // `ignoreOtherResonantorEchoes` toggle, which is now ignored here: skip
       // every echo held by a protected character (src/echoes/optimizerProtection.ts).
       const protectedEchoIds = inventoryStore.protectedEchoIds(character.value);
+      const candidateCount = filteredEchoes.length;
       if (protectedEchoIds.size) {
         filteredEchoes = filteredEchoes.filter((e) => !protectedEchoIds.has(e.echoId));
       }
@@ -1500,7 +1502,11 @@ export default defineComponent({
       const emptyReasonContext = {
         inventoryCount,
         setFilteredCount,
-        unprotectedCount: filteredEchoes.length,
+        // Only blame protection when it removed every remaining echo.
+        unprotectedCount:
+          candidateCount > 0 && filteredEchoes.length < candidateCount
+            ? filteredEchoes.length
+            : undefined,
       };
 
       // Build optimizer context with all necessary data

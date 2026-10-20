@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import {
   deriveLegacyDonors,
+  filterEchoesBySets,
   getEchoHolders,
   getLoadoutDonors,
   getProtectedEchoIds,
@@ -113,9 +114,26 @@ describe("deriveLegacyDonors (old ignore-equipped toggle)", () => {
     const characters = { A: { optimizer: { ignoreOtherResonantorEchoes: false } }, B: {} };
     expect(deriveLegacyDonors(characters, holders)).toEqual(["Carlotta", "Changli", "Jinhsi", "Verina"]);
   });
+  it("reads string values the old settings prop accepted", () => {
+    const characters = {
+      A: { optimizer: { ignoreOtherResonantorEchoes: "true" } },
+      B: { optimizer: { ignoreOtherResonantorEchoes: false } },
+    };
+    expect(deriveLegacyDonors(characters, holders)).toEqual([]);
+    expect(deriveLegacyDonors({ A: { optimizer: { ignoreOtherResonantorEchoes: "false" } } }, holders)).toHaveLength(4);
+  });
+
   it("uses the new default (all protected) when it was never set", () => {
     expect(deriveLegacyDonors({ A: {}, B: { optimizer: {} } }, holders)).toEqual([]);
     expect(deriveLegacyDonors(undefined, holders)).toEqual([]);
+  });
+});
+
+describe("filterEchoesBySets", () => {
+  it("keeps every echo for an empty filter and only chosen sets otherwise", () => {
+    const echoes = [{ echoSet: "A" }, { echoSet: "B" }, {}];
+    expect(filterEchoesBySets(echoes, [])).toEqual(echoes);
+    expect(filterEchoesBySets(echoes, ["B"])).toEqual([{ echoSet: "B" }]);
   });
 });
 
@@ -139,13 +157,14 @@ describe("inventory store integration", () => {
     expect([...inventory.protectedEchoIds("Carlotta").keys()]).toEqual(["e9"]);
   });
 
-  it("falls back to the legacy toggle until something is stored, then persists it", () => {
+  it("never derives donors from the legacy toggle at runtime, only when seeding", () => {
     useCharacterStore().hardSetState({
       characters: { Carlotta: { optimizer: { ignoreOtherResonantorEchoes: false } } },
     } as never);
     const inventory = useInventoryStore();
     inventory.hardSetState({ echoes: [], equipped: { e1: { Jinhsi: 0 } } });
-    expect(inventory.optimizerDonors).toEqual(["Jinhsi"]);
+    // The optimizer UIs still write `false` on every save; that must not unlock anyone.
+    expect(inventory.optimizerDonors).toEqual([]);
     inventory.ensureOptimizerProtection();
     expect(inventory.optimizerProtection).toEqual({ donors: ["Jinhsi"] });
     // Once stored, a later holder is protected rather than derived as a donor.

@@ -310,7 +310,7 @@ import {
   normalizeLoadoutFormat,
   type OptimizerLoadoutFormat,
 } from "../../calculator/optimizer";
-import { summarizeProtection } from "../../echoes/optimizerProtection";
+import { filterEchoesBySets, summarizeProtection } from "../../echoes/optimizerProtection";
 
 defineOptions({ name: "OptimizerWorkspaceSetup" });
 
@@ -383,14 +383,11 @@ const protectionSection = ref<HTMLElement | null>(null);
 // (same filters as Calculator.vue's handleOptimize), for the run bar.
 const inventoryStore = useInventoryStore();
 const protectionSummary = computed(() => {
-  const allowed = new Set(setFilters.value);
   const echoes = filterEchoesForOptimizer(inventoryStore.echoes ?? []) as Array<{
     echoId: string;
     echoSet?: string;
   }>;
-  const ids = echoes
-    .filter((echo) => !allowed.size || allowed.has(echo.echoSet ?? ""))
-    .map((echo) => echo.echoId);
+  const ids = filterEchoesBySets(echoes, setFilters.value).map((echo) => echo.echoId);
   return summarizeProtection(ids, inventoryStore.protectedEchoIds(props.character));
 });
 

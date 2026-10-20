@@ -25,15 +25,12 @@ export const useInventoryStore = defineStore("inventory", {
     echoHolders: (state) =>
       getEchoHolders(state.equipped, state.equippedPresets, state.echoPresets),
     /**
-     * Characters whose echoes the optimizer may use. Falls back to the
-     * upstream toggle (deriveLegacyDonors) when nothing is stored yet, e.g.
-     * right after importing an old backup.
+     * Characters whose echoes the optimizer may use; nobody (everyone
+     * protected) until set. The old toggle is only read once, when seeding
+     * (migration 010 / ensureOptimizerProtection) — never at runtime, since
+     * the optimizer UIs still write that field on every save.
      */
-    optimizerDonors() {
-      const stored = readProtectionState(this.optimizerProtection);
-      if (stored) return stored.donors;
-      return deriveLegacyDonors(useCharacterStore().characters, this.echoHolders);
-    },
+    optimizerDonors: (state) => readProtectionState(state.optimizerProtection)?.donors ?? [],
     /** Characters shown in the protection picker for `character`. */
     protectionCandidates() {
       return (character) => listProtectionCandidates(this.echoHolders, character);
@@ -243,13 +240,12 @@ export const useInventoryStore = defineStore("inventory", {
       this.optimizerProtection = { donors: [...donors] };
     },
     /**
-     * Persists the derived donors when nothing is stored yet, so a backup
-     * imported from before this feature keeps its legacy reading instead of
-     * changing as characters get echoes later. No-op once set.
+     * Seeds the donors from the old per-character toggle when nothing is
+     * stored yet (an imported pre-fork backup). No-op once set.
      */
     ensureOptimizerProtection() {
       if (readProtectionState(this.optimizerProtection)) return;
-      this.setOptimizerDonors(this.optimizerDonors);
+      this.setOptimizerDonors(deriveLegacyDonors(useCharacterStore().characters, this.echoHolders));
     },
     getEchoEquippedChars(echoId) {
       const equipped = this.equipped[echoId] ?? {};

@@ -26,7 +26,7 @@ export function seedOptimizerProtection(characterJson: string | null, inventoryJ
   if (!inventory || typeof inventory !== "object" || Array.isArray(inventory)) return inventoryJson;
   if (readProtectionState(inventory.optimizerProtection)) return inventoryJson;
 
-  let characters: Record<string, any> = {};
+  let characters: Record<string, any>;
   try {
     characters = (characterJson ? JSON.parse(characterJson) : {})?.characters ?? {};
   } catch {

@@ -92,7 +92,7 @@
 import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useInventoryStore } from "../stores/inventory";
-import { allCharactersList } from "../characters/characters";
+import { allCharactersList, getCharacterRosterDisplayName } from "../characters/characters";
 import { filterEchoesForOptimizer } from "../calculator/optimizer";
 import {
   invertCandidates,
@@ -111,15 +111,23 @@ const inventoryStore = useInventoryStore();
 const { echoes } = storeToRefs(inventoryStore);
 
 const rosterByKey = new Map(allCharactersList.map((entry) => [entry.key, entry]));
-const nameOf = (key: string) => rosterByKey.get(key)?.name ?? key;
+const nameOf = getCharacterRosterDisplayName;
 
 const donors = computed<string[]>(() => inventoryStore.optimizerDonors);
 const candidates = computed<string[]>(() => inventoryStore.protectionCandidates(props.character));
 
+const optimizerEchoIds = computed(() =>
+  (filterEchoesForOptimizer(echoes.value ?? []) as Array<{ echoId: string }>).map((echo) => echo.echoId),
+);
+
+// Per-character counts of echoes the optimizer could actually use (skips
+// stale ids in presets/equipped maps and "ignore in optimizer" echoes).
 const echoCounts = computed(() => {
   const counts = new Map<string, number>();
-  for (const holders of inventoryStore.echoHolders.values()) {
-    for (const key of holders) counts.set(key, (counts.get(key) ?? 0) + 1);
+  for (const echoId of optimizerEchoIds.value) {
+    for (const key of inventoryStore.echoHolders.get(echoId) ?? []) {
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
   }
   return counts;
 });
@@ -140,10 +148,7 @@ const entries = computed(() => {
 const protectedCount = computed(() => entries.value.filter((entry) => entry.isProtected).length);
 
 const summary = computed(() =>
-  summarizeProtection(
-    (filterEchoesForOptimizer(echoes.value ?? []) as Array<{ echoId: string }>).map((echo) => echo.echoId),
-    inventoryStore.protectedEchoIds(props.character),
-  ),
+  summarizeProtection(optimizerEchoIds.value, inventoryStore.protectedEchoIds(props.character)),
 );
 
 const excludedByText = computed(() => {

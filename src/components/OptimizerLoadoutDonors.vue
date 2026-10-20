@@ -25,7 +25,7 @@
 // equipping it doesn't silently strip someone (protected characters).
 import { computed } from "vue";
 import { useInventoryStore } from "../stores/inventory";
-import { allCharactersList } from "../characters/characters";
+import { allCharactersList, getCharacterRosterDisplayName } from "../characters/characters";
 import { getLoadoutDonors } from "../echoes/optimizerProtection";
 import CharacterAvatar from "./characters/CharacterAvatar.vue";
 
@@ -42,7 +42,7 @@ const donors = computed(() =>
   ).map(({ character, count }) => ({
     key: character,
     count,
-    name: rosterByKey.get(character)?.name ?? character,
+    name: getCharacterRosterDisplayName(character),
     rarity: rosterByKey.get(character)?.rarity ?? 4,
   })),
 );
