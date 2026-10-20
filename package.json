@@ -26,6 +26,8 @@
     "cypress:run:calculator-core": "cypress run --spec \"cypress/e2e/calculator/*.cy.ts\"",
     "test:e2e": "vite dev & wait-on http://localhost:5173 && cypress run",
     "cli": "tsx cli/index.ts",
+    "serve:dist": "node scripts/serve-dist.mjs",
+    "package:offline": "node scripts/pack-offline.mjs",
     "scanner:icons": "tsx scripts/scanner-icons.ts",
     "scanner:keygen": "tsx scripts/scanner-data-keygen.ts"
   },

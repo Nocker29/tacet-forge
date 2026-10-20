@@ -55,3 +55,5 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   how many echoes the chosen sets leave.
 - Fix: removing an echo set, main echo or stat floor in the optimizer setup now always
   saves (lodash `merge` never shortened the stored lists).
+- Added `npm run package:offline` (sources + prebuilt `dist/` in one zip) and
+  `npm run serve:dist`.

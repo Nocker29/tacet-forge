@@ -19,8 +19,10 @@ another one looks like an empty app. Keep one address, and use Settings → Back
 Restore to move data between origins (or from wutheringtools.com).
 `file://` does not work: module scripts, workers and the router need an http origin.
 
-**Offline package.** Ship the full source tree (so the GPL source requirement is met and
-it can be rebuilt) plus a prebuilt `dist/`, so `start.bat` runs without `npm` or network.
+**Offline package.** `npm run build && npm run package:offline` writes
+`tacet-forge-offline.zip`: every git-tracked file (the full source, so the GPL source
+requirement is met and it can be rebuilt) plus the prebuilt `dist/`, so `start.bat` runs
+without `npm` or network. Commit first: untracked files aren't included.
 Images and the Google font still need internet (see below); without it the app works
 but shows missing-image placeholders.
 
