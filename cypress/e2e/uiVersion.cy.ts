@@ -40,12 +40,12 @@ describe("UI version (v3 default, classic opt-in)", () => {
     visitAsNewUser();
     cy.get("[data-test-workspace-avatar]").should("exist");
 
-    cy.get('[aria-label="Change Theme"]').first().click();
+    cy.get('[aria-label="Display options"]').first().click();
     cy.get('[data-set-ui="classic"]').first().click({ force: true });
     cy.get("[data-test-workspace-avatar]").should("not.exist");
     storedConfig().its("useClassicUi").should("equal", true);
 
-    cy.get('[aria-label="Change Theme"]').first().click();
+    cy.get('[aria-label="Display options"]').first().click();
     cy.get('[data-set-ui="v3"]').first().click({ force: true });
     cy.get("[data-test-workspace-avatar]").should("exist");
     storedConfig().its("useClassicUi").should("equal", false);

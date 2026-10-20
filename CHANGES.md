@@ -21,3 +21,7 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   The production build no longer needs `SCANNER_DATA_SIGNING_KEY`. The scanner code is kept.
 - Added `start.bat` and `scripts/serve-dist.mjs` to run the built app locally on
   http://localhost:4317, and `docs/fork-hosting.md` (hosting options, image hotlink vs mirror).
+- **F1 – dark theme only.** DaisyUI ships just the `dark` theme; the theme list was
+  removed from the top-bar menu (now "Display options": density + classic/v3 UI).
+  A theme saved by upstream's picker (light, black, synthwave…) is rewritten to `dark`
+  on load (`applyAppTheme`, `src/composables/useTheme.ts`).

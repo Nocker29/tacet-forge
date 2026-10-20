@@ -82,6 +82,9 @@ const inventoryStore = useInventoryStore();
 import { reportClassicUiSession } from "./composables/useClassicUi";
 reportClassicUiSession();
 
+import { applyAppTheme } from "./composables/useTheme";
+applyAppTheme();
+
 // prevent bfcache
 window.addEventListener("unload", () => {
   console.log("unloading app");

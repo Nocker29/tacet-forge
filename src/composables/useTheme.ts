@@ -1,54 +1,27 @@
-import { computed } from "vue";
-import { storeToRefs } from "pinia";
 import { useSettingsStore } from "../stores/settings";
 
-export const THEME_OPTIONS = [
-  "dark",
-  "light",
-  "black",
-  "synthwave",
-  "pastel",
-  "night",
-  "nord",
-  "dracula",
-] as const;
+/**
+ * Tacet Forge ships a single dark theme (tailwind.config.js). Upstream let users
+ * pick one of eight; a stored choice is ignored and rewritten to "dark".
+ */
+export const APP_THEME = "dark";
 
-export type ThemeName = (typeof THEME_OPTIONS)[number];
 export type ThemeStyle = "light" | "dark";
 
 /**
- * DaisyUI themes whose base colors read as "light" (dark text on a light
- * surface). Components that special-case the light look (icon filters,
- * overlay contrast, etc.) should key off `data-theme-style` rather than a
- * specific theme name, so any theme added here picks up those adjustments
- * automatically.
+ * Sets the theme attributes on <html> (index.html already ships them, this
+ * keeps them right if anything changed them) and replaces any other theme left
+ * in settings by upstream's theme picker, so code that still reads
+ * `config.theme` (e.g. the old "black" tweaks) sees "dark". Call once after
+ * Pinia is installed.
  */
-const LIGHT_THEMES: ReadonlySet<string> = new Set(["light", "pastel", "nord"]);
+export function applyAppTheme() {
+  document.documentElement.setAttribute("data-theme", APP_THEME);
+  document.documentElement.setAttribute("data-theme-style", "dark");
 
-export function getThemeStyle(theme: string): ThemeStyle {
-  return LIGHT_THEMES.has(theme) ? "light" : "dark";
-}
-
-function applyThemeAttributes(theme: string) {
-  document.documentElement.setAttribute("data-theme", theme);
-  document.documentElement.setAttribute(
-    "data-theme-style",
-    getThemeStyle(theme),
-  );
-}
-
-export function useTheme() {
   const settingsStore = useSettingsStore();
-  const { config } = storeToRefs(settingsStore);
-
-  const theme = computed<string | null>(
-    () => (config.value as { theme?: string } | null)?.theme ?? null,
-  );
-
-  function setTheme(next: string) {
-    applyThemeAttributes(next);
-    void settingsStore.addToConfig({ theme: next });
+  const config = settingsStore.config as { theme?: unknown } | null;
+  if (config && config.theme !== undefined && config.theme !== APP_THEME) {
+    settingsStore.addToConfig({ theme: APP_THEME });
   }
-
-  return { theme, setTheme };
 }

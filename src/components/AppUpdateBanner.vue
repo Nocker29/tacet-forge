@@ -97,7 +97,7 @@
 
       <p class="text-xs opacity-50 mt-4">
         Prefer the previous layout? The classic UI is still available for now: switch to it here,
-        from the theme menu, or in Settings. Your builds and echoes are shared between both. If
+        from the display menu, or in Settings. Your builds and echoes are shared between both. If
         you find issues or have suggestions, report them on GitHub.
       </p>
       <div class="modal-action flex-wrap">

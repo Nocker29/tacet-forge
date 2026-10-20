@@ -16,7 +16,7 @@
             </span>
             <span :class="variant === 'v3' ? 'text-sm opacity-70' : 'text-sm text-neutral-content'">
               Switch back to the previous layout. Your builds, echoes and settings are shared
-              between both, so you can switch any time. You can also switch from the theme menu.
+              between both, so you can switch any time. You can also switch from the display menu.
             </span>
           </span>
         </label>
