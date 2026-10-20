@@ -2,6 +2,13 @@ import { defineStore } from "pinia";
 import { merge } from "lodash";
 import { useCharacterStore } from "./character";
 import { applyEchoLoadout as applyEchoLoadoutState } from "../echoes/echoLoadout";
+import {
+  deriveLegacyDonors,
+  getEchoHolders,
+  getProtectedEchoIds,
+  listProtectionCandidates,
+  readProtectionState,
+} from "../echoes/optimizerProtection";
 
 export const useInventoryStore = defineStore("inventory", {
   state: () => ({
@@ -9,8 +16,33 @@ export const useInventoryStore = defineStore("inventory", {
     equipped: {},
     echoPresets: [],
     equippedPresets: {},
+    // Tacet Forge protected characters: { donors: string[] } (see
+    // src/echoes/optimizerProtection.ts). null until first set or migrated.
+    optimizerProtection: null,
   }),
   getters: {
+    /** echoId → characters holding it (equipped or via their assigned preset). */
+    echoHolders: (state) =>
+      getEchoHolders(state.equipped, state.equippedPresets, state.echoPresets),
+    /**
+     * Characters whose echoes the optimizer may use. Falls back to the
+     * upstream toggle (deriveLegacyDonors) when nothing is stored yet, e.g.
+     * right after importing an old backup.
+     */
+    optimizerDonors() {
+      const stored = readProtectionState(this.optimizerProtection);
+      if (stored) return stored.donors;
+      return deriveLegacyDonors(useCharacterStore().characters, this.echoHolders);
+    },
+    /** Characters shown in the protection picker for `character`. */
+    protectionCandidates() {
+      return (character) => listProtectionCandidates(this.echoHolders, character);
+    },
+    /** echoId → protected holders, for echoes the optimizer must skip. */
+    protectedEchoIds() {
+      return (character) =>
+        getProtectedEchoIds(this.echoHolders, this.optimizerDonors, character);
+    },
     // look through all echoes in state.echoes and look at all echo.echoId, find any duplicates
     duplicateEchoIds: (state) => {
       const echoIdCount = {};
@@ -203,6 +235,21 @@ export const useInventoryStore = defineStore("inventory", {
       this.echoes = data?.echoes ?? [];
       this.equipped = data?.equipped ?? {};
       this.echoPresets = data?.echoPresets ?? [];
+      // Upstream dropped this on import, losing which character uses which preset.
+      this.equippedPresets = data?.equippedPresets ?? {};
+      this.optimizerProtection = readProtectionState(data?.optimizerProtection);
+    },
+    setOptimizerDonors(donors) {
+      this.optimizerProtection = { donors: [...donors] };
+    },
+    /**
+     * Persists the derived donors when nothing is stored yet, so a backup
+     * imported from before this feature keeps its legacy reading instead of
+     * changing as characters get echoes later. No-op once set.
+     */
+    ensureOptimizerProtection() {
+      if (readProtectionState(this.optimizerProtection)) return;
+      this.setOptimizerDonors(this.optimizerDonors);
     },
     getEchoEquippedChars(echoId) {
       const equipped = this.equipped[echoId] ?? {};

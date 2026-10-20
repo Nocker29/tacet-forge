@@ -35,6 +35,7 @@
         :hide-inventory="true"
         class="w-full"></CalculatorOptimizerResultLoadoutEcho>
     </div>
+    <OptimizerLoadoutDonors :character="character" :loadout="loadout" />
 
     <div class="divider my-0"></div>
 
@@ -112,6 +113,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import CalculatorOptimizerResultLoadoutEcho from "../CalculatorOptimizerResultLoadoutEcho.vue";
+import OptimizerLoadoutDonors from "../OptimizerLoadoutDonors.vue";
 import CalculatorOptimizerResultDamage from "../CalculatorOptimizerResultDamage.vue";
 import CalculatorOptimizerResultRotationDamage, {
   type RotationPayload,

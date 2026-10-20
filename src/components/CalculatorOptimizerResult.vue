@@ -14,6 +14,7 @@
       </button>
     </div>
     <CalculatorOptimizerResultLoadout :loadout="loadout" />
+    <OptimizerLoadoutDonors class="mb-2" :character="character" :loadout="loadout" />
     <div class="optimizer_result_target">
       <div v-if="contextTargetType === 'Attack'">
         <h3 class="my-2 text-center">Attack Result</h3>
@@ -56,6 +57,7 @@ import { computed } from "vue";
 import CalculatorOptimizerResultStats from "./CalculatorOptimizerResultStats.vue";
 import CalculatorOptimizerResultDamage from "./CalculatorOptimizerResultDamage.vue";
 import CalculatorOptimizerResultLoadout from "./CalculatorOptimizerResultLoadout.vue";
+import OptimizerLoadoutDonors from "./OptimizerLoadoutDonors.vue";
 import CalculatorOptimizerResultRotationDamage, {
   type RotationPayload,
 } from "./CalculatorOptimizerResultRotationDamage.vue";

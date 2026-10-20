@@ -12,6 +12,8 @@
  *   7 — mainEcho.isEnabled/stacks → mainEcho.buffs[buffKey]
  *   8 — add builds[]/activeBuildId to character records (issue #278)
  *   9 — resolve echoes with both locked and trash set (now mutually exclusive)
+ *  10 — Tacet Forge: seed inventory.optimizerProtection (protected characters)
+ *       from the old per-character ignore-equipped toggle
  *
  * On load, compare the user's version to CURRENT_DATA_VERSION and run each
  * pending migration in order.
@@ -30,6 +32,7 @@ import replaceCharacterRotationExcludeBuffs from "./versions/006_replaceCharacte
 import migrateMainEchoBuffs from "./versions/007_mainEchoBuffs";
 import addCharacterBuildsMigration from "./versions/008_addCharacterBuilds";
 import resolveEchoLockTrashConflictsMigration from "./versions/009_resolveEchoLockTrashConflicts";
+import addOptimizerProtectionMigration from "./versions/010_addOptimizerProtection";
 
 /** localStorage key that mirrors export `meta.version`. */
 export const DATA_VERSION_KEY = "dataVersion";
@@ -38,7 +41,7 @@ export const DATA_VERSION_KEY = "dataVersion";
  * Latest data version. Bump when adding a migration.
  * Also written to export `meta.version`.
  */
-export const CURRENT_DATA_VERSION = 9;
+export const CURRENT_DATA_VERSION = 10;
 
 /**
  * Version assumed when an existing user has data but no data-version key yet
@@ -58,6 +61,7 @@ const migrations: Migration[] = [
   migrateMainEchoBuffs,
   addCharacterBuildsMigration,
   resolveEchoLockTrashConflictsMigration,
+  addOptimizerProtectionMigration,
 ];
 
 function parseVersion(raw: string | null | undefined): number | null {

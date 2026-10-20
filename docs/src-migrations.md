@@ -39,6 +39,8 @@ Documented at the top of `index.ts`:
 | 6 | Replace character rotation `excludeWeaponBuffs`/`excludeTeamBuffs`/`excludeSelfBuffs` checkboxes with an `advancedConfig` per-buff override (issue #401) — see `versions/006_replaceCharacterRotationExcludeBuffs.ts` |
 | 7 | Move `mainEcho.isEnabled`/`stacks` and `optimizer.mainEchoBuffs` into per-buff maps — see `versions/007_mainEchoBuffs.ts` |
 | 8 | Add `builds`/`activeBuildId` to character records, seeding a "Default build" from each character's existing data (issue #278) — see `versions/008_addCharacterBuilds.ts` |
+| 9 | Resolve echoes with both `locked` and `trash` set (locked wins) — see `versions/009_resolveEchoLockTrashConflicts.ts` |
+| 10 | Tacet Forge: seed `inventory.optimizerProtection` (protected characters) from the old per-character ignore-equipped toggle; no per-store transform, imports use `ensureOptimizerProtection()` — see `versions/010_addOptimizerProtection.ts` |
 
 ## Two call sites, two purposes
 

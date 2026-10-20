@@ -118,6 +118,7 @@ export function filterEchoesForOptimizer(echoes: unknown[]): unknown[] {
 export type OptimizerEmptyReason =
   | "no-inventory"
   | "no-set-echoes"
+  | "all-protected"
   | "filtered"
   | "none-found";
 
@@ -127,6 +128,8 @@ export const OPTIMIZER_EMPTY_REASON_MESSAGES: Record<
 > = {
   "no-inventory": "There are no echoes in your inventory",
   "no-set-echoes": "There are no echoes with the sets you chose",
+  "all-protected":
+    "Every matching echo belongs to a protected character. Unlock some characters under Protected characters to use their echoes",
   filtered:
     "There are no loadouts based on your filtering, such as minimum stat requirements",
   "none-found": "No loadouts were found",
@@ -140,12 +143,17 @@ export function resolveOptimizerEmptyReason(input: {
   inventoryCount: number;
   setFilteredCount: number;
   generatedCount: number;
+  /** Set-matching echoes left after protected characters' echoes are removed. */
+  unprotectedCount?: number;
 }): OptimizerEmptyReason {
   if (input.inventoryCount <= 0) {
     return "no-inventory";
   }
   if (input.setFilteredCount <= 0) {
     return "no-set-echoes";
+  }
+  if (input.unprotectedCount !== undefined && input.unprotectedCount <= 0) {
+    return "all-protected";
   }
   if (input.generatedCount > 0) {
     return "filtered";

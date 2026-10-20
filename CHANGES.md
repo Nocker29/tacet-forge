@@ -34,3 +34,17 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   optimizer" (`/?screen=optimizer`). Stats use the build card's rules (equipment +
   permanent bonuses). Reads the existing stores only; no new persisted data.
 - Build card image watermark now reads "TACET FORGE" instead of the upstream domain.
+- **F3 – Protected characters** replace "Ignore echoes equipped by other resonators" in
+  the optimizer's advanced settings. An avatar grid of every other character that has
+  echoes equipped or a preset assigned: protected (lock, echoes excluded) or donor
+  (dimmed, echoes usable), with Protect all / Unlock all / Invert. Everyone is protected by
+  default, including characters that get echoes later. An echo shared by several
+  characters is excluded if any of them is protected. A summary shows how many echoes are
+  available/excluded and by whom (also as a chip next to Run Optimizer), results show
+  which characters a loadout takes echoes from, and an empty run explains when protection
+  removed every matching echo. Stored once in `inventory.optimizerProtection`, so it's in
+  the JSON backup. Data version 10: migration seeds it from the old toggle (on anywhere →
+  all protected; explicitly off → all donors; never set → all protected); importing an
+  older backup does the same.
+- Fix: importing a backup now restores which character uses which echo preset
+  (`equippedPresets` was dropped by the inventory import).

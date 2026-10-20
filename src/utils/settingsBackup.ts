@@ -150,6 +150,9 @@ export function applyImportedDatabase(raw: string) {
   inventoryStore.hardSetState(
     parseStorePayload(importData.inventory, importData.dataVersion) as never,
   );
+  // Backups from before protected characters: seed them from the imported
+  // characters' old ignore-equipped toggles (migration 010 can't, see there).
+  inventoryStore.ensureOptimizerProtection();
   // Older exports (pre-version-5) never had team data — hardSetState
   // already treats undefined as "no teams" via `data?.teams ?? []`.
   teamRotationsStore.hardSetState(

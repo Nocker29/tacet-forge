@@ -1,16 +1,7 @@
 <template>
   <div class="optimizer-settings-list">
-    <div class="form-control">
-      <label class="label cursor-pointer flex gap-4 justify-start">
-        <input
-          v-model="ignoreOtherResonantorEchoes"
-          type="checkbox"
-          class="toggle toggle-primary toggle-sm" />
-        <span class="label-text">
-          Ignore echoes equipped by other resonators
-        </span>
-      </label>
-    </div>
+    <!-- Tacet Forge: replaces "Ignore echoes equipped by other resonators". -->
+    <OptimizerProtectedCharacters :character="character" />
     <div class="form-control mt-2">
       <label class="label">
         <h3>Loadout format</h3>
@@ -76,6 +67,7 @@ import {
   type OptimizerLoadoutFormat,
 } from "../calculator/optimizer";
 import { useSettingsStore } from "../stores/settings";
+import OptimizerProtectedCharacters from "./OptimizerProtectedCharacters.vue";
 import {
   OPTIMIZER_WORKER_COUNT_OPTIONS,
   resolveOptimizerWorkerCount,
@@ -99,6 +91,8 @@ const emit = defineEmits<{
   ];
 }>();
 
+// No longer editable (protected characters replace it); passed through
+// unchanged so saving other settings doesn't rewrite the stored legacy value.
 const ignoreOtherResonantorEchoes = ref(false);
 const loadoutFormat = ref<OptimizerLoadoutFormat>("Any");
 
@@ -125,10 +119,6 @@ function updatedSettings() {
     loadoutFormat: loadoutFormat.value,
   });
 }
-
-watch(ignoreOtherResonantorEchoes, () => {
-  updatedSettings();
-});
 
 watch(loadoutFormat, () => {
   updatedSettings();

@@ -69,7 +69,13 @@ import { computed, ref } from "vue";
 
 defineOptions({ name: "OptimizerWorkspaceRunBar" });
 
-export type OptimizerSetupSection = "sets" | "mainEcho" | "target" | "buffs" | "minStats";
+export type OptimizerSetupSection =
+  | "sets"
+  | "mainEcho"
+  | "target"
+  | "buffs"
+  | "minStats"
+  | "protection";
 
 const props = defineProps<{
   echoSetCount: number;
@@ -77,6 +83,9 @@ const props = defineProps<{
   hasTarget: boolean;
   buffsNotSetCount: number;
   minStatsCount: number;
+  /** Echoes in the chosen sets the optimizer can use / skips (protected characters). */
+  availableEchoCount?: number;
+  protectedEchoCount?: number;
 }>();
 
 const emit = defineEmits<{
@@ -114,6 +123,16 @@ const checks = computed<Check[]>(() => {
       label: `${plural(props.buffsNotSetCount, "buff", "buffs")} not set`,
       state: "warn",
       section: "buffs",
+    });
+  }
+  if (props.availableEchoCount !== undefined) {
+    list.push({
+      id: "protection",
+      label: props.protectedEchoCount
+        ? `${plural(props.availableEchoCount, "echo", "echoes")} usable · ${props.protectedEchoCount} protected`
+        : `${plural(props.availableEchoCount, "echo", "echoes")} usable`,
+      state: props.availableEchoCount === 0 && props.protectedEchoCount ? "warn" : "info",
+      section: "protection",
     });
   }
   list.push({

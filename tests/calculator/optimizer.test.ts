@@ -214,10 +214,23 @@ describe("resolveOptimizerEmptyReason", () => {
     ).toBe("none-found");
   });
 
+  it("blames protected characters when they removed every set-matching echo", () => {
+    expect(
+      resolveOptimizerEmptyReason({ inventoryCount: 10, setFilteredCount: 4, unprotectedCount: 0, generatedCount: 0 }),
+    ).toBe("all-protected");
+    expect(
+      resolveOptimizerEmptyReason({ inventoryCount: 10, setFilteredCount: 0, unprotectedCount: 0, generatedCount: 0 }),
+    ).toBe("no-set-echoes");
+    expect(
+      resolveOptimizerEmptyReason({ inventoryCount: 10, setFilteredCount: 4, unprotectedCount: 4, generatedCount: 0 }),
+    ).toBe("none-found");
+  });
+
   it("has a message for every reason", () => {
     for (const reason of [
       "no-inventory",
       "no-set-echoes",
+      "all-protected",
       "filtered",
       "none-found",
     ] as const) {

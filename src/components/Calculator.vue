@@ -1461,7 +1461,7 @@ export default defineComponent({
       mainEchoStats = {},
       target = "ATK",
       damageType = "Average",
-      ignoreOtherResonantorEchoes = false,
+      _ignoreOtherResonantorEchoes = false,
       loadoutFormat = "Any",
     ) => {
       const echoes = inventoryStore.echoes;
@@ -1489,17 +1489,18 @@ export default defineComponent({
       if (allowedSets.size) {
         filteredEchoes = filteredEchoes.filter((e) => allowedSets.has(e.echoSet));
       }
-      if (ignoreOtherResonantorEchoes) {
-        const echoIdsEquippedByOtherChars =
-          inventoryStore.echoIdsEquippedByOtherChars(character.value);
-        filteredEchoes = filteredEchoes.filter(
-          (e) => !echoIdsEquippedByOtherChars.includes(e.echoId),
-        );
+      // Protected characters (Tacet Forge) replace the old per-character
+      // `ignoreOtherResonantorEchoes` toggle, which is now ignored here: skip
+      // every echo held by a protected character (src/echoes/optimizerProtection.ts).
+      const protectedEchoIds = inventoryStore.protectedEchoIds(character.value);
+      if (protectedEchoIds.size) {
+        filteredEchoes = filteredEchoes.filter((e) => !protectedEchoIds.has(e.echoId));
       }
 
       const emptyReasonContext = {
         inventoryCount,
         setFilteredCount,
+        unprotectedCount: filteredEchoes.length,
       };
 
       // Build optimizer context with all necessary data
@@ -1775,6 +1776,7 @@ export default defineComponent({
       emptyReasonContext: {
         inventoryCount: number;
         setFilteredCount: number;
+        unprotectedCount?: number;
       } = { inventoryCount: 0, setFilteredCount: 0 },
     ) => {
       // Worker count is user-configurable (Settings → Preferences), split between
@@ -2114,6 +2116,7 @@ export default defineComponent({
             optimizerEmptyReason.value = resolveOptimizerEmptyReason({
               inventoryCount: emptyReasonContext.inventoryCount,
               setFilteredCount: emptyReasonContext.setFilteredCount,
+              unprotectedCount: emptyReasonContext.unprotectedCount,
               generatedCount: totalProcessed || totalGenerated() || 0,
             });
           } else {
@@ -2211,6 +2214,7 @@ export default defineComponent({
                 optimizerEmptyReason.value = resolveOptimizerEmptyReason({
                   inventoryCount: emptyReasonContext.inventoryCount,
                   setFilteredCount: emptyReasonContext.setFilteredCount,
+                  unprotectedCount: emptyReasonContext.unprotectedCount,
                   generatedCount: 0,
                 });
                 stopOptimizerTimer();

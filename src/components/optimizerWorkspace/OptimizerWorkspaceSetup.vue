@@ -69,6 +69,8 @@
         :has-target="hasValidTarget"
         :buffs-not-set-count="buffsNotSetCount"
         :min-stats-count="minStats.length"
+        :available-echo-count="protectionSummary.total - protectionSummary.excludedCount"
+        :protected-echo-count="protectionSummary.excludedCount"
         @run="handleOptimizeClick"
         @jump="jumpToSection"></OptimizerWorkspaceRunBar>
     </div>
@@ -178,7 +180,7 @@
 
         <div class="divider my-0"></div>
 
-        <div>
+        <div ref="protectionSection" class="scroll-mt-20">
           <div class="text-xs font-bold uppercase tracking-wider opacity-50 mb-2">
             Advanced settings
           </div>
@@ -291,6 +293,7 @@ import {
 } from "../../echoes/sets";
 import { mainEchoesData, getEchoData } from "../../echoes/index";
 import { useCharacterStore } from "../../stores/character";
+import { useInventoryStore } from "../../stores/inventory";
 import CalculatorOptimizerMinStats from "../CalculatorOptimizerMinStats.vue";
 import type { OptimizerMinStatRow } from "../CalculatorOptimizerMinStats.vue";
 import CalculatorOptimizerEchoSet from "../CalculatorOptimizerEchoSet.vue";
@@ -303,9 +306,11 @@ import OptimizerWorkspaceRunBar, {
 } from "./OptimizerWorkspaceRunBar.vue";
 import { useOptimizerEchoBuffs } from "../../composables/useOptimizerEchoBuffs";
 import {
+  filterEchoesForOptimizer,
   normalizeLoadoutFormat,
   type OptimizerLoadoutFormat,
 } from "../../calculator/optimizer";
+import { summarizeProtection } from "../../echoes/optimizerProtection";
 
 defineOptions({ name: "OptimizerWorkspaceSetup" });
 
@@ -372,6 +377,22 @@ const setsSection = ref<HTMLElement | null>(null);
 const mainEchoSection = ref<HTMLElement | null>(null);
 const targetSection = ref<HTMLElement | null>(null);
 const buffsSection = ref<HTMLElement | null>(null);
+const protectionSection = ref<HTMLElement | null>(null);
+
+// Echoes in the chosen sets that protected characters keep out of the run
+// (same filters as Calculator.vue's handleOptimize), for the run bar.
+const inventoryStore = useInventoryStore();
+const protectionSummary = computed(() => {
+  const allowed = new Set(setFilters.value);
+  const echoes = filterEchoesForOptimizer(inventoryStore.echoes ?? []) as Array<{
+    echoId: string;
+    echoSet?: string;
+  }>;
+  const ids = echoes
+    .filter((echo) => !allowed.size || allowed.has(echo.echoSet ?? ""))
+    .map((echo) => echo.echoId);
+  return summarizeProtection(ids, inventoryStore.protectedEchoIds(props.character));
+});
 
 async function jumpToSection(section: OptimizerSetupSection) {
   if (section === "buffs") isBuffsOpen.value = true;
@@ -383,6 +404,7 @@ async function jumpToSection(section: OptimizerSetupSection) {
     target: targetSection,
     buffs: buffsSection,
     minStats: null,
+    protection: protectionSection,
   }[section]?.value;
   el?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
