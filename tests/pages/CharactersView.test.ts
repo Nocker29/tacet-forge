@@ -91,6 +91,14 @@ describe("CharactersView", () => {
     expect(keys).toEqual(["Jinhsi"]);
   });
 
+  it("clearing filters also turns off Won't build hiding, so an empty result can be undone", async () => {
+    await renderView({ Danjin: { buildStatus: "wont-build" } });
+    await fireEvent.click(screen.getByLabelText("Hide characters marked Won't build"));
+    expect(document.querySelector("[data-test-characters-no-matches]")).not.toBeNull();
+    await fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(document.querySelector('[data-test-character-overview-card="Danjin"]')).not.toBeNull();
+  });
+
   it("opens the details and sends the character to the optimizer", async () => {
     const { router } = await renderView({ Jinhsi: {} });
     await fireEvent.click(document.querySelector('[data-test-character-overview-card="Jinhsi"]')!);

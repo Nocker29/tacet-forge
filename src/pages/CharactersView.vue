@@ -191,13 +191,17 @@ const visibleCharacters = computed(() =>
 
 const activeFilterCount = computed(
   () =>
-    (search.value.trim() ? 1 : 0) + (filterElement.value ? 1 : 0) + (filterWeapon.value ? 1 : 0),
+    (search.value.trim() ? 1 : 0) +
+    (filterElement.value ? 1 : 0) +
+    (filterWeapon.value ? 1 : 0) +
+    (hideWontBuildCharacters.value ? 1 : 0),
 );
 
 function resetFilters() {
   search.value = "";
   filterElement.value = null;
   filterWeapon.value = null;
+  hideWontBuildCharacters.value = false;
 }
 
 const detailsRef = ref<InstanceType<typeof CharacterOverviewDetails> | null>(null);

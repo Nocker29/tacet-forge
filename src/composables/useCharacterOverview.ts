@@ -4,10 +4,12 @@
  * like the build card does (equipment + permanently active bonuses, no
  * situational buffs), via `buildCharacterCalculationContext`.
  *
- * Contexts are built one at a time through a shared queue so opening the page
- * with 40+ characters doesn't load every character/weapon module at once.
+ * Card loads run one at a time through a shared queue so opening the page with
+ * 40+ characters doesn't load every character/weapon module at once. A load
+ * that is superseded or whose card unmounted before its turn is skipped, and
+ * `priority` loads (the details view) bypass the queue.
  */
-import { computed, ref, watch, type Ref } from "vue";
+import { computed, getCurrentScope, onScopeDispose, ref, watch, type Ref } from "vue";
 import { storeToRefs } from "pinia";
 import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
@@ -41,7 +43,10 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
 
 const OVERVIEW_ENEMY = { enemyLevel: 90, enemyResist: 0.1, enemyType: "Calamity" };
 
-export function useCharacterOverview(characterId: () => string | null | undefined) {
+export function useCharacterOverview(
+  characterId: () => string | null | undefined,
+  options: { priority?: boolean } = {},
+) {
   const characterStore = useCharacterStore();
   const inventoryStore = useInventoryStore();
   const { characters } = storeToRefs(characterStore);
@@ -62,6 +67,12 @@ export function useCharacterOverview(characterId: () => string | null | undefine
   const error = ref<string | null>(null);
 
   let requestId = 0;
+  let disposed = false;
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      disposed = true;
+    });
+  }
 
   async function load(id: string) {
     const built = await buildCharacterCalculationContext(
@@ -74,9 +85,10 @@ export function useCharacterOverview(characterId: () => string | null | undefine
     const weaponKey: string | null = characters.value?.[id]?.weapon ?? null;
     let weaponSummary: CharacterOverviewWeapon | null = null;
     if (weaponKey) {
+      // Module imports are cached, so this only reads the display info the
+      // context doesn't return (name, rarity, image).
       const weaponType = built.chosenChar?.basic?.weapon ?? "Swords";
-      const module = await getWeaponByName(weaponType, weaponKey);
-      const info = module?.info;
+      const info = (await getWeaponByName(weaponType, weaponKey))?.info;
       if (info) {
         const stored = characters.value?.[id]?.weapons?.[weaponKey] ?? {};
         weaponSummary = {
@@ -102,33 +114,46 @@ export function useCharacterOverview(characterId: () => string | null | undefine
     };
   }
 
-  // Deep-watch only this character's record and its 5 resolved echoes, not
-  // the whole inventory (one watcher per card on a page of 40+ cards).
+  function clear() {
+    stats.value = null;
+    tuneBreakBoost.value = 0;
+    weapon.value = null;
+  }
+
+  // The getter touches the whole inventory (resolving echo ids), so it fires
+  // on unrelated inventory edits too; only recompute when this character's
+  // record or its 5 echoes actually changed.
+  let lastInput: string | null = null;
   watch(
     () => [characterId(), record.value, echoes.value] as const,
-    async ([id]) => {
+    async ([id, currentRecord, currentEchoes]) => {
+      const input = JSON.stringify([id, currentRecord, currentEchoes]);
+      if (input === lastInput) return;
+      lastInput = input;
+
       const current = ++requestId;
+      error.value = null;
       if (!id) {
-        stats.value = null;
-        weapon.value = null;
+        clear();
         isLoading.value = false;
         return;
       }
       isLoading.value = true;
-      error.value = null;
+      const isStale = () => disposed || current !== requestId;
       try {
-        const result = await enqueue(() => load(id));
-        if (current !== requestId) return;
+        const run = () => (isStale() ? Promise.resolve(null) : load(id));
+        const result = await (options.priority ? run() : enqueue(run));
+        if (!result || isStale()) return;
         stats.value = result.stats;
         tuneBreakBoost.value = result.tuneBreakBoost;
         weapon.value = result.weapon;
       } catch (caught) {
-        if (current !== requestId) return;
+        if (isStale()) return;
         console.error(`Could not compute stats for ${id}`, caught);
         error.value = "Couldn't calculate this character's stats.";
-        stats.value = null;
+        clear();
       } finally {
-        if (current === requestId) isLoading.value = false;
+        if (!isStale()) isLoading.value = false;
       }
     },
     { immediate: true, deep: true },

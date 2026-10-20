@@ -143,7 +143,7 @@ describe("CalculatorBuildCard", () => {
     const watermarkEl = container.querySelector(
       "[data-test-build-card-watermark]",
     );
-    expect(watermarkEl?.textContent?.trim()).toBe("WUTHERINGTOOLS.COM");
+    expect(watermarkEl?.textContent?.trim()).toBe("TACET FORGE");
     // Lives inside the echoes column, below the echo cards, so it's
     // anchored to the card's bottom-right corner.
     expect(

@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { characterPortraitUrl } from "../../characters/characters";
 
 const props = withDefaults(
   defineProps<{ characterKey: string; name: string; rarity: number; sizeClass?: string }>(),
@@ -29,9 +30,7 @@ const props = withDefaults(
 );
 
 const failed = ref(false);
-const src = computed(
-  () => `https://ryanbenson.github.io/wuthering-waves-assets/images/${props.characterKey}.png`,
-);
+const src = computed(() => characterPortraitUrl(props.characterKey));
 const initials = computed(() =>
   props.name
     .split(/\s+/)

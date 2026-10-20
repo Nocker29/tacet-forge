@@ -563,7 +563,7 @@ import { useSettingsStore } from "../stores/settings";
 import { isV3UiEnabled } from "../utils/uiVersion";
 import { resolveOptimizerWorkerCount } from "../utils/optimizerPreferences";
 import { trackEvent } from "../utils/analytics";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { resolveInitialCalculatorScreen } from "../utils/calculatorScreen";
 import Nav from "./navigation/Nav.vue";
 import CalculatorMobileSubNav from "./navigation/CalculatorMobileSubNav.vue";
@@ -687,7 +687,15 @@ export default defineComponent({
     const characterLevel = ref("90");
     const weaponType = ref("");
     const route = useRoute();
+    const router = useRouter();
     const curScreen = ref(resolveInitialCalculatorScreen(route?.query?.screen));
+    // One-shot (Characters page → "Open in optimizer"): drop ?screen= so a
+    // later reload opens wherever the user navigated to, not the link's screen.
+    if (route?.query?.screen !== undefined) {
+      const query = { ...route.query };
+      delete query.screen;
+      void router?.replace({ query });
+    }
     const mainEcho = ref("");
     const mainEchoRank = ref(5);
     const selectedStat = ref(null);

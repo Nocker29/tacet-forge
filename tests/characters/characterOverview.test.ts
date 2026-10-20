@@ -89,11 +89,10 @@ describe("summarizeActiveEchoSets", () => {
 });
 
 describe("countEquippedEchoes", () => {
-  it("counts inventory-linked and inline echoes", () => {
-    expect(
-      countEquippedEchoes({ echoes: { 0: { echoId: "a" }, 1: { echo: "Hecate" }, 2: { echoId: null } } }),
-    ).toBe(2);
-    expect(countEquippedEchoes(undefined)).toBe(0);
+  it("counts resolved slots that hold an echo", () => {
+    // Slot 0 points at a deleted inventory echo (resolves to the bare slot).
+    expect(countEquippedEchoes([{ echoId: "gone" } as any, { echo: "Hecate" }, {}, null, { echo: "Jue" }])).toBe(2);
+    expect(countEquippedEchoes([])).toBe(0);
   });
 });
 

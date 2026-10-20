@@ -132,7 +132,7 @@ const statusDotClass = computed(() => getCharacterBuildStatusDotClass(status.val
 const buildScoreClass = computed(() =>
   buildScore.value ? getRatingBadgeClasses(buildScore.value.color) : null,
 );
-const equippedCount = computed(() => countEquippedEchoes(record.value));
+const equippedCount = computed(() => countEquippedEchoes(echoes.value));
 const statRows = computed(() => {
   const s = stats.value ?? {};
   return [

@@ -193,8 +193,10 @@ const emit = defineEmits<{
 
 const modalRef = ref<InstanceType<typeof AppChooserModal> | null>(null);
 
+// Priority: the user is waiting on this one, don't queue it behind the cards.
 const { record, echoes, stats, tuneBreakBoost, weapon, isLoading, error } = useCharacterOverview(
   () => props.character?.key,
+  { priority: true },
 );
 const { rollup: buildScore } = useTeamSubstatScoreRollup(() => props.character?.key);
 const buildScoreClass = computed(() =>
@@ -203,7 +205,7 @@ const buildScoreClass = computed(() =>
 
 const level = computed(() => getCharacterLevel(record.value));
 const sequence = computed(() => getSequenceLevel(record.value?.resonanceChains));
-const equippedCount = computed(() => countEquippedEchoes(record.value));
+const equippedCount = computed(() => countEquippedEchoes(echoes.value));
 const activeBuildName = computed(() => {
   const builds: Array<{ id: string; name?: string }> = record.value?.builds ?? [];
   if (builds.length < 2) return null;

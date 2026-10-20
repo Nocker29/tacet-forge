@@ -310,7 +310,7 @@
                 :character-id="props.character" />
             </div>
             <div class="build-card__watermark shrink-0 text-right" data-test-build-card-watermark>
-              WUTHERINGTOOLS.COM
+              TACET FORGE
             </div>
           </div>
         </div>
@@ -338,7 +338,7 @@ import {
   getEchoSetIconByType,
   getEchoSetLabelByType,
 } from "../echoes/stats";
-import { getSetBonusThreshold } from "../echoes/sets";
+import { summarizeActiveEchoSets } from "../characters/characterOverview";
 import { compressImageToDataUrl } from "../utils/imageCompression";
 import { contrastOklchTriple, hexToOklchTriple } from "../utils/color";
 import {
@@ -660,24 +660,14 @@ const substatScoreRollupAccent = computed(() =>
 // "1pc Shadow of Shattered Dreams" — informational (what's equipped), not a
 // re-derivation of `getSetBonusEffects`'s "which bonus slots actually
 // apply" selection logic used for damage calculation.
-const echoSetSummary = computed(() => {
-  const counts: Record<string, number> = {};
-  for (const echo of echoSlots.value as Array<{ echoSet?: string }>) {
-    const key = echo?.echoSet;
-    if (key && key !== "none") {
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
-  }
-  return Object.entries(counts)
-    .filter(([key, count]) => count >= getSetBonusThreshold(key))
-    .sort(([, a], [, b]) => b - a)
-    .map(([key, count]) => ({
-      key,
-      count,
-      label: getEchoSetLabelByType(key),
-      icon: getEchoSetIconByType(key),
-    }));
-});
+const echoSetSummary = computed(() =>
+  summarizeActiveEchoSets(echoSlots.value as Array<{ echoSet?: string }>).map(({ key, count }) => ({
+    key,
+    count,
+    label: getEchoSetLabelByType(key),
+    icon: getEchoSetIconByType(key),
+  })),
+);
 
 const weaponKey = computed(() => characterData.value.weapon ?? null);
 const weaponRefinement = computed(

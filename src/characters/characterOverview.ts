@@ -85,14 +85,15 @@ export function summarizeActiveEchoSets(
     .map(([key, count]) => ({ key, count }));
 }
 
-/** How many of the 5 echo slots hold an echo (inventory link or inline data). */
-export function countEquippedEchoes(record: CharacterRecord | null | undefined): number {
-  let count = 0;
-  for (let index = 0; index < 5; index++) {
-    const slot = record?.echoes?.[index];
-    if (slot?.echoId || slot?.echo) count += 1;
-  }
-  return count;
+/**
+ * How many resolved echo slots (see `resolveCharacterEchoes`) hold an actual
+ * echo. A slot whose `echoId` points at a deleted inventory echo doesn't count,
+ * matching what the details view can show.
+ */
+export function countEquippedEchoes(
+  echoes: ReadonlyArray<{ echo?: string | null } | null | undefined>,
+): number {
+  return echoes.filter((echo) => Boolean(echo?.echo)).length;
 }
 
 export function filterAndSortCharacters(
