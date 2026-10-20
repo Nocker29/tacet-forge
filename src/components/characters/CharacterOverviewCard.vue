@@ -95,7 +95,7 @@ import {
   countEquippedEchoes,
   getCharacterLevel,
   getSequenceLevel,
-  summarizeActiveEchoSets,
+  describeActiveEchoSets,
   type ListedCharacter,
 } from "../../characters/characterOverview";
 import {
@@ -103,7 +103,6 @@ import {
   getCharacterBuildStatusDotClass,
   getCharacterBuildStatusLabel,
 } from "../../characters/characterBuildStatus";
-import { getEchoSetIconByType, getEchoSetLabelByType } from "../../echoes/stats";
 import { useCharacterOverview } from "../../composables/useCharacterOverview";
 import { useTeamSubstatScoreRollup } from "../../composables/useTeamSubstatScoreRollup";
 import { getRatingBadgeClasses } from "../../composables/useEchoRating";
@@ -144,11 +143,5 @@ const statRows = computed(() => {
     { label: "DEF", value: displayInt(s.totalDef ?? 0) },
   ];
 });
-const activeSets = computed(() =>
-  summarizeActiveEchoSets(echoes.value).map((set) => ({
-    ...set,
-    label: getEchoSetLabelByType(set.key),
-    icon: getEchoSetIconByType(set.key),
-  })),
-);
+const activeSets = computed(() => describeActiveEchoSets(echoes.value));
 </script>

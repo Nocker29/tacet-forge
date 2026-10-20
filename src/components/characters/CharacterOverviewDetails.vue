@@ -165,15 +165,10 @@ import {
   countEquippedEchoes,
   getCharacterLevel,
   getSequenceLevel,
-  summarizeActiveEchoSets,
+  describeActiveEchoSets,
   type ListedCharacter,
 } from "../../characters/characterOverview";
-import {
-  getEchoSetIconByType,
-  getEchoSetLabelByType,
-  subStatIconMap,
-  subStatLabelMap,
-} from "../../echoes/stats";
+import { subStatIconMap, subStatLabelMap } from "../../echoes/stats";
 import { useCharacterOverview } from "../../composables/useCharacterOverview";
 import { useTeamSubstatScoreRollup } from "../../composables/useTeamSubstatScoreRollup";
 import { getRatingBadgeClasses } from "../../composables/useEchoRating";
@@ -211,13 +206,7 @@ const activeBuildName = computed(() => {
   if (builds.length < 2) return null;
   return builds.find((build) => build.id === record.value?.activeBuildId)?.name ?? null;
 });
-const activeSets = computed(() =>
-  summarizeActiveEchoSets(echoes.value).map((set) => ({
-    ...set,
-    label: getEchoSetLabelByType(set.key),
-    icon: getEchoSetIconByType(set.key),
-  })),
-);
+const activeSets = computed(() => describeActiveEchoSets(echoes.value));
 
 function triggerOpenModal() {
   return modalRef.value?.triggerOpenModal();

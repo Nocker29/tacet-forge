@@ -4,6 +4,7 @@
  * Reads the character store's records as-is; nothing here writes or copies them.
  */
 import { getSetBonusThreshold } from "../echoes/sets";
+import { getEchoSetIconByType, getEchoSetLabelByType } from "../echoes/stats";
 import { getCharacterBuildStatus } from "./characterBuildStatus";
 
 export interface ListedCharacter {
@@ -83,6 +84,17 @@ export function summarizeActiveEchoSets(
     .filter(([key, count]) => count >= getSetBonusThreshold(key))
     .sort(([keyA, a], [keyB, b]) => b - a || keyA.localeCompare(keyB))
     .map(([key, count]) => ({ key, count }));
+}
+
+/** `summarizeActiveEchoSets` plus each set's display label and icon. */
+export function describeActiveEchoSets(
+  echoes: ReadonlyArray<{ echoSet?: string | null } | null | undefined>,
+): Array<{ key: string; count: number; label: string; icon: string }> {
+  return summarizeActiveEchoSets(echoes).map((set) => ({
+    ...set,
+    label: getEchoSetLabelByType(set.key),
+    icon: getEchoSetIconByType(set.key),
+  }));
 }
 
 /**

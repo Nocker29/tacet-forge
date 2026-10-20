@@ -335,10 +335,8 @@ import { getRatingAccentClasses } from "../composables/useEchoRating";
 import {
   subStatIconMap,
   subStatLabelMap,
-  getEchoSetIconByType,
-  getEchoSetLabelByType,
 } from "../echoes/stats";
-import { summarizeActiveEchoSets } from "../characters/characterOverview";
+import { describeActiveEchoSets } from "../characters/characterOverview";
 import { compressImageToDataUrl } from "../utils/imageCompression";
 import { contrastOklchTriple, hexToOklchTriple } from "../utils/color";
 import {
@@ -661,12 +659,7 @@ const substatScoreRollupAccent = computed(() =>
 // re-derivation of `getSetBonusEffects`'s "which bonus slots actually
 // apply" selection logic used for damage calculation.
 const echoSetSummary = computed(() =>
-  summarizeActiveEchoSets(echoSlots.value as Array<{ echoSet?: string }>).map(({ key, count }) => ({
-    key,
-    count,
-    label: getEchoSetLabelByType(key),
-    icon: getEchoSetIconByType(key),
-  })),
+  describeActiveEchoSets(echoSlots.value as Array<{ echoSet?: string }>),
 );
 
 const weaponKey = computed(() => characterData.value.weapon ?? null);

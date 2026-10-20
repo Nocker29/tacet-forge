@@ -33,3 +33,4 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   echoes with main/substats, full stats, sets) with "Open in calculator" / "Open in
   optimizer" (`/?screen=optimizer`). Stats use the build card's rules (equipment +
   permanent bonuses). Reads the existing stores only; no new persisted data.
+- Build card image watermark now reads "TACET FORGE" instead of the upstream domain.
