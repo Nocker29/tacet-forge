@@ -15,7 +15,7 @@ calculation runs in the browser. There is no backend.
 **Why a fixed port.** All user data (characters, builds, inventory, settings) is in
 `localStorage`, which is per *origin* (scheme + host + port). `http://localhost:4317`,
 `http://127.0.0.1:4317` and `http://localhost:5173` are three different stores: moving to
-another one looks like an empty app. Keep one address, and use Settings → Backup &amp;
+another one looks like an empty app. Keep one address, and use Settings → Backup &
 Restore to move data between origins (or from wutheringtools.com).
 `file://` does not work: module scripts, workers and the router need an http origin.
 
