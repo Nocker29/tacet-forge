@@ -564,6 +564,7 @@ import { isV3UiEnabled } from "../utils/uiVersion";
 import { resolveOptimizerWorkerCount } from "../utils/optimizerPreferences";
 import { trackEvent } from "../utils/analytics";
 import { useRoute } from "vue-router";
+import { resolveInitialCalculatorScreen } from "../utils/calculatorScreen";
 import Nav from "./navigation/Nav.vue";
 import CalculatorMobileSubNav from "./navigation/CalculatorMobileSubNav.vue";
 import CalculatorSubNav from "./navigation/CalculatorSubNav.vue";
@@ -685,7 +686,8 @@ export default defineComponent({
     const customBuffs = reactive({});
     const characterLevel = ref("90");
     const weaponType = ref("");
-    const curScreen = ref("character");
+    const route = useRoute();
+    const curScreen = ref(resolveInitialCalculatorScreen(route?.query?.screen));
     const mainEcho = ref("");
     const mainEchoRank = ref(5);
     const selectedStat = ref(null);

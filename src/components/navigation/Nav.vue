@@ -58,6 +58,29 @@
             :data-test-char-avatar="displayCharacter"></div>
         </RouterLink>
         <RouterLink
+          to="/characters"
+          class="btn btn-ghost size-5 p-0 hidden sm:flex justify-center basis-[48px] mr-2"
+          :class="{ 'btn-active': curPage === 'characters' }"
+          title="Characters"
+          aria-label="Characters"
+          data-test-nav-characters>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="size-6"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+          </svg>
+        </RouterLink>
+        <RouterLink
           to="/inventory"
           class="btn btn-ghost size-5 p-0 flex justify-center basis-[48px] mr-2"
           :class="{ 'btn-active': curPage === 'inventory' }">
@@ -114,6 +137,16 @@
               class="dropdown-content bg-base-200 text-base-content rounded-box top-px border border-white/5 shadow-2xl outline-1 outline-black/5 mt-16">
               <!-- Classic UI: flat list. -->
               <ul v-if="!isLiveResultBarEnabled" class="menu w-56">
+                <!-- Phones: the navbar has no room for the Characters icon. -->
+                <li class="mb-2 sm:hidden">
+                  <RouterLink
+                    to="/characters"
+                    @click="toggleOptionsMenu"
+                    :class="{ active: curPage === 'characters' }"
+                    data-test-options-characters>
+                    Characters
+                  </RouterLink>
+                </li>
                 <li class="mb-2">
                   <RouterLink
                     to="/settings"
@@ -178,6 +211,17 @@
               <!-- v3 UI: grouped, with icons. -->
               <ul v-else class="menu subnav--v3 w-56" data-test-options-menu-v3>
                 <li class="subnav__eyebrow">Workspace</li>
+                <!-- Phones: the navbar has no room for the Characters icon. -->
+                <li class="mb-1 sm:hidden">
+                  <RouterLink
+                    to="/characters"
+                    @click="toggleOptionsMenu"
+                    :class="{ active: curPage === 'characters' }"
+                    data-test-options-characters>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="size-4" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+                    Characters
+                  </RouterLink>
+                </li>
                 <li class="mb-1">
                   <RouterLink
                     to="/settings"
