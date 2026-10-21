@@ -1,10 +1,13 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/vue";
 import { createRouter, createMemoryHistory } from "vue-router";
 import { createTestingPinia } from "@pinia/testing";
-import { it, describe, expect, beforeEach, afterEach } from "vitest";
+import { it, describe, expect, beforeEach, afterEach, vi } from "vitest";
 import "@testing-library/jest-dom";
 import CharactersView from "../../src/pages/CharactersView.vue";
 import { useCharacterStore } from "../../src/stores/character";
+
+const confirmMock = vi.hoisted(() => vi.fn());
+vi.mock("../../src/composables/useConfirm", () => ({ useConfirm: () => ({ confirm: confirmMock }) }));
 
 function makeRouter() {
   return createRouter({
@@ -107,5 +110,27 @@ describe("CharactersView", () => {
     await fireEvent.click(document.querySelector("[data-test-character-details-open-optimizer]")!);
     await waitFor(() => expect(router.currentRoute.value.fullPath).toBe("/?screen=optimizer"));
     expect(useCharacterStore().activeCharacter).toBe("Jinhsi");
+  });
+
+  it("removes a character after confirming, and keeps it when cancelled", async () => {
+    await renderView({ Jinhsi: {}, Danjin: {} });
+    const openAndRemove = async () => {
+      await fireEvent.click(document.querySelector('[data-test-character-overview-card="Jinhsi"]')!);
+      await waitFor(() => expect(document.querySelector("[data-test-character-details]")).not.toBeNull());
+      await fireEvent.click(document.querySelector("[data-test-character-details-delete]")!);
+    };
+
+    confirmMock.mockResolvedValueOnce(false);
+    await openAndRemove();
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+    expect(useCharacterStore().characters).toHaveProperty("Jinhsi");
+
+    confirmMock.mockResolvedValueOnce(true);
+    await openAndRemove();
+    await waitFor(() =>
+      expect(document.querySelector('[data-test-character-overview-card="Jinhsi"]')).toBeNull(),
+    );
+    expect(useCharacterStore().characters).not.toHaveProperty("Jinhsi");
+    expect(document.querySelector('[data-test-character-overview-card="Danjin"]')).not.toBeNull();
   });
 });

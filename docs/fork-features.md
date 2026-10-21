@@ -16,6 +16,11 @@ history is in [CHANGES.md](../CHANGES.md).
   queue so 40+ cards don't load every module at once. Nothing is copied into a store.
 - "Open in calculator" sets the active character and goes to `/`; "Open in optimizer" adds
   `?screen=optimizer`, read once by `Calculator.vue` via `src/utils/calculatorScreen.ts`.
+- "Remove character" (details modal → confirm) calls the character store's `deleteCharacter`:
+  drops the record and favorite, clears `activeCharacter` if it was them, unequips their echoes
+  (`equipped`), unassigns their preset (`equippedPresets`) and removes them from the optimizer
+  donors. No store shape change. The calculator creates an empty record for whichever character
+  it opens (on first launch, the newest five-star), so that character reappears here if opened again.
 - Missing images fall back to initials (`CharacterAvatar.vue`) or a neutral placeholder
   (`src/components/AppImage.vue`).
 
