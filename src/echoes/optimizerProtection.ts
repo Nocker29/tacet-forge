@@ -89,6 +89,24 @@ export function listProtectionCandidates(
 }
 
 /**
+ * How many of `echoIds` (the echoes this run could use) each character holds.
+ * Characters missing from the map hold none of them, so protecting them
+ * changes nothing.
+ */
+export function countHeldEchoes(
+  echoIds: readonly string[],
+  holders: Map<string, Set<string>>,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const echoId of echoIds) {
+    for (const character of holders.get(echoId) ?? []) {
+      counts.set(character, (counts.get(character) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+/**
  * Echo ids the optimizer must skip for `optimizedCharacter`, each mapped to the
  * protected characters that hold it (for "excluded by …" summaries).
  */

@@ -62,3 +62,8 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   Its echoes stay in the inventory, just unequipped; its preset is unassigned, not deleted.
   Removing the character open in the calculator switches the calculator to your first
   favorite still saved, else the first remaining character by name.
+- Character Buffs: Enable all / Max all / Disable all moved to their own row under the
+  heading, above Stat Bonuses (v3 and classic).
+- Protected characters only lists characters holding echoes in the optimizer's eligible echo
+  sets (all sets when none is picked); the others don't affect the run. Their protected/donor
+  state is kept, and Protect all / Unlock all / Invert only change the characters shown.

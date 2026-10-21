@@ -1,7 +1,7 @@
 <template>
   <div class="optimizer-settings-list">
     <!-- Tacet Forge: replaces "Ignore echoes equipped by other resonators". -->
-    <OptimizerProtectedCharacters :character="character" />
+    <OptimizerProtectedCharacters :character="character" :set-filters="setFilters" />
     <div class="form-control mt-2">
       <label class="label">
         <h3>Loadout format</h3>
@@ -80,6 +80,8 @@ const props = defineProps<{
   character: string;
   currentIgnoreOtherResonantorEchoes?: boolean | string;
   currentLoadoutFormat?: OptimizerLoadoutFormat | string | null;
+  /** The optimizer's eligible echo sets; empty means every set. */
+  setFilters?: string[];
 }>();
 
 const emit = defineEmits<{

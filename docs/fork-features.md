@@ -43,6 +43,9 @@ history is in [CHANGES.md](../CHANGES.md).
 - UI: `OptimizerProtectedCharacters.vue` (in `CalculatorOptimizerSettings.vue`, both UIs),
   the run-bar chip in `OptimizerWorkspaceRunBar.vue`, and `OptimizerLoadoutDonors.vue` on
   result loadouts.
+  The grid takes the optimizer's `setFilters` and lists only candidates holding at least one
+  usable echo in those sets (`countHeldEchoes`; all sets when empty). Hidden characters keep
+  their stored state; the bulk buttons only change the listed ones.
 - Data: migration `010_addOptimizerProtection` seeds the field from localStorage (needs both
   stores, so no per-store transform); `applyImportedDatabase` calls
   `ensureOptimizerProtection()` for imported backups. Tests: `tests/echoes/optimizerProtection.test.ts`,

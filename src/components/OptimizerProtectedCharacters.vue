@@ -36,7 +36,12 @@
     </div>
 
     <p v-if="!candidates.length" class="text-xs opacity-60 rounded-lg bg-base-100 p-3" data-test-optimizer-protected-empty>
-      No other character has echoes equipped or a preset assigned, so every echo is available.
+      <template v-if="holderCount">
+        No other character's echoes are in the eligible echo sets, so there's nothing to protect.
+      </template>
+      <template v-else>
+        No other character has echoes equipped or a preset assigned, so every echo is available.
+      </template>
     </p>
     <div
       v-else
@@ -95,6 +100,8 @@ import { useInventoryStore } from "../stores/inventory";
 import { allCharactersList, getCharacterRosterDisplayName } from "../characters/characters";
 import { filterEchoesForOptimizer } from "../calculator/optimizer";
 import {
+  countHeldEchoes,
+  filterEchoesBySets,
   invertCandidates,
   protectCandidates,
   summarizeProtection,
@@ -105,7 +112,11 @@ import CharacterAvatar from "./characters/CharacterAvatar.vue";
 
 defineOptions({ name: "OptimizerProtectedCharacters" });
 
-const props = defineProps<{ character: string }>();
+const props = defineProps<{
+  character: string;
+  /** The optimizer's eligible echo sets; empty means every set. */
+  setFilters?: string[];
+}>();
 
 const inventoryStore = useInventoryStore();
 const { echoes } = storeToRefs(inventoryStore);
@@ -114,23 +125,24 @@ const rosterByKey = new Map(allCharactersList.map((entry) => [entry.key, entry])
 const nameOf = getCharacterRosterDisplayName;
 
 const donors = computed<string[]>(() => inventoryStore.optimizerDonors);
-const candidates = computed<string[]>(() => inventoryStore.protectionCandidates(props.character));
+const holders = computed<string[]>(() => inventoryStore.protectionCandidates(props.character));
+const holderCount = computed(() => holders.value.length);
 
+// Echoes this run could use: same filters as the run itself (Calculator.vue),
+// so stale ids, "ignore in optimizer" echoes and other sets don't count.
 const optimizerEchoIds = computed(() =>
-  (filterEchoesForOptimizer(echoes.value ?? []) as Array<{ echoId: string }>).map((echo) => echo.echoId),
+  filterEchoesBySets(
+    filterEchoesForOptimizer(echoes.value ?? []) as Array<{ echoId: string; echoSet?: string | null }>,
+    props.setFilters ?? [],
+  ).map((echo) => echo.echoId),
 );
 
-// Per-character counts of echoes the optimizer could actually use (skips
-// stale ids in presets/equipped maps and "ignore in optimizer" echoes).
-const echoCounts = computed(() => {
-  const counts = new Map<string, number>();
-  for (const echoId of optimizerEchoIds.value) {
-    for (const key of inventoryStore.echoHolders.get(echoId) ?? []) {
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-  }
-  return counts;
-});
+const echoCounts = computed(() => countHeldEchoes(optimizerEchoIds.value, inventoryStore.echoHolders));
+
+// Only characters holding at least one usable echo: protecting the rest
+// changes nothing. Their stored protected/donor state is left as is, and the
+// "all" buttons only touch the characters shown.
+const candidates = computed(() => holders.value.filter((key) => echoCounts.value.has(key)));
 
 const entries = computed(() => {
   const donorSet = new Set(donors.value);

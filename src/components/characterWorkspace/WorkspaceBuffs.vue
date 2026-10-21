@@ -1,18 +1,16 @@
 <template>
   <div class="bg-base-200 rounded-xl p-4 flex flex-col gap-3">
-    <div class="flex items-center justify-between gap-3 flex-wrap">
-      <h3 class="text-sm font-semibold">Character Buffs</h3>
-      <div class="flex gap-2">
-        <button type="button" class="btn btn-xs" data-test-workspace-buffs-enable-all @click="enableAll">
-          Enable All
-        </button>
-        <button type="button" class="btn btn-xs" data-test-workspace-buffs-max-all @click="maxAll">
-          Max All
-        </button>
-        <button type="button" class="btn btn-xs" data-test-workspace-buffs-disable-all @click="disableAll">
-          Disable All
-        </button>
-      </div>
+    <h3 class="text-sm font-semibold">Character Buffs</h3>
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Change all character buffs">
+      <button type="button" class="btn btn-xs" data-test-workspace-buffs-enable-all @click="enableAll">
+        Enable All
+      </button>
+      <button type="button" class="btn btn-xs" data-test-workspace-buffs-max-all @click="maxAll">
+        Max All
+      </button>
+      <button type="button" class="btn btn-xs" data-test-workspace-buffs-disable-all @click="disableAll">
+        Disable All
+      </button>
     </div>
 
     <div v-if="statBonusChips.length" class="pt-1 pb-3 border-b border-base-300">
