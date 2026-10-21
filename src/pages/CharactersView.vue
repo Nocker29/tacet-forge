@@ -141,6 +141,7 @@ import {
 import {
   filterAndSortCharacters,
   listSavedCharacters,
+  pickNextActiveCharacter,
   type CharacterSortKey,
 } from "../characters/characterOverview";
 import { useCharacterStore } from "../stores/character";
@@ -244,7 +245,18 @@ async function deleteCharacter(key: string) {
     { title: "Remove character", confirmLabel: "Remove", variant: "error" },
   );
   if (!confirmed) return;
+  const wasActive = characterStore.activeCharacter === key;
   characterStore.deleteCharacter(key);
+  // Otherwise the calculator falls back to its default character and recreates
+  // an empty record for them.
+  const next = wasActive
+    ? pickNextActiveCharacter(savedCharacters.value, characterStore.favoriteCharacters)
+    : null;
+  if (next) {
+    characterStore.setActiveCharacter(next.key);
+    showToast(`${name} removed — the calculator now shows ${next.name}`, "success");
+    return;
+  }
   showToast(`${name} removed`, "success");
 }
 </script>

@@ -20,14 +20,17 @@ function makeRouter() {
   });
 }
 
-async function renderView(characters: Record<string, unknown>) {
+async function renderView(
+  characters: Record<string, unknown>,
+  { activeCharacter = "", favoriteCharacters = [] as string[] } = {},
+) {
   const router = makeRouter();
   await router.push("/characters");
   await router.isReady();
   const pinia = createTestingPinia({
     stubActions: false,
     initialState: {
-      character: { characters, activeCharacter: "", favoriteCharacters: [] },
+      character: { characters, activeCharacter, favoriteCharacters },
       inventory: { echoes: [], equipped: {}, echoPresets: [], equippedPresets: {} },
       settings: { config: {}, labs: {} },
     },
@@ -132,5 +135,35 @@ describe("CharactersView", () => {
     );
     expect(useCharacterStore().characters).not.toHaveProperty("Jinhsi");
     expect(document.querySelector('[data-test-character-overview-card="Danjin"]')).not.toBeNull();
+  });
+
+  it("switches the calculator to a favorite when its character is removed", async () => {
+    await renderView(
+      { Jinhsi: {}, Danjin: {}, Carlotta: {} },
+      { activeCharacter: "Jinhsi", favoriteCharacters: ["Jinhsi", "Danjin"] },
+    );
+    confirmMock.mockResolvedValueOnce(true);
+    await fireEvent.click(document.querySelector('[data-test-character-overview-card="Jinhsi"]')!);
+    await waitFor(() => expect(document.querySelector("[data-test-character-details]")).not.toBeNull());
+    await fireEvent.click(document.querySelector("[data-test-character-details-delete]")!);
+    await waitFor(() => expect(useCharacterStore().activeCharacter).toBe("Danjin"));
+  });
+
+  it("switches to the first character by name without favorites, and leaves others' removal alone", async () => {
+    await renderView({ Jinhsi: {}, Danjin: {}, Carlotta: {} }, { activeCharacter: "Jinhsi" });
+    const remove = async (key: string) => {
+      confirmMock.mockResolvedValueOnce(true);
+      await fireEvent.click(document.querySelector(`[data-test-character-overview-card="${key}"]`)!);
+      await waitFor(() => expect(document.querySelector("[data-test-character-details]")).not.toBeNull());
+      await fireEvent.click(document.querySelector("[data-test-character-details-delete]")!);
+      await waitFor(() => expect(useCharacterStore().characters).not.toHaveProperty(key));
+    };
+
+    await remove("Jinhsi");
+    expect(useCharacterStore().activeCharacter).toBe("Carlotta");
+    await remove("Danjin");
+    expect(useCharacterStore().activeCharacter).toBe("Carlotta");
+    await remove("Carlotta");
+    expect(useCharacterStore().activeCharacter).toBe("");
   });
 });

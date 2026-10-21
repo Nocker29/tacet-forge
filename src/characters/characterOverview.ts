@@ -45,6 +45,23 @@ export function listSavedCharacters(
 }
 
 /**
+ * Who the calculator should show after its character was removed: the first
+ * favorite still saved (in favorites order), else the first saved character by
+ * name. Null when nobody is left.
+ */
+export function pickNextActiveCharacter(
+  saved: readonly ListedCharacter[],
+  favorites: readonly string[] | null | undefined,
+): ListedCharacter | null {
+  const byKey = new Map(saved.map((character) => [character.key, character]));
+  for (const key of favorites ?? []) {
+    const favorite = byKey.get(key);
+    if (favorite) return favorite;
+  }
+  return [...saved].sort((a, b) => a.name.localeCompare(b.name))[0] ?? null;
+}
+
+/**
  * Sequence (S0–S6) from a stored `resonanceChains` toggle map. Chain keys
  * start with `SequenceNode<N>` (several entries can share one node), so the
  * sequence is the highest node with any entry enabled.

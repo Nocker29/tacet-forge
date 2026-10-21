@@ -5,6 +5,7 @@ import {
   getCharacterLevel,
   getSequenceLevel,
   listSavedCharacters,
+  pickNextActiveCharacter,
   summarizeActiveEchoSets,
   type ListedCharacter,
 } from "../../src/characters/characterOverview";
@@ -141,5 +142,20 @@ describe("resolveInitialCalculatorScreen", () => {
     expect(resolveInitialCalculatorScreen(["echoes"])).toBe("echoes");
     expect(resolveInitialCalculatorScreen("nope")).toBe("character");
     expect(resolveInitialCalculatorScreen(undefined)).toBe("character");
+  });
+});
+
+describe("pickNextActiveCharacter", () => {
+  it("prefers the first favorite that is still saved, in favorites order", () => {
+    expect(pickNextActiveCharacter(roster, ["Removed", "Danjin", "Aalto"])?.key).toBe("Danjin");
+  });
+
+  it("falls back to the first character by name without a saved favorite", () => {
+    expect(pickNextActiveCharacter(roster, ["Removed"])?.key).toBe("Aalto");
+    expect(pickNextActiveCharacter(roster, undefined)?.key).toBe("Aalto");
+  });
+
+  it("returns null when nobody is left", () => {
+    expect(pickNextActiveCharacter([], ["Danjin"])).toBeNull();
   });
 });
