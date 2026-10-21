@@ -19,8 +19,10 @@ history is in [CHANGES.md](../CHANGES.md).
 - "Remove character" (details modal → confirm) calls the character store's `deleteCharacter`:
   drops the record and favorite, clears `activeCharacter` if it was them, unequips their echoes
   (`equipped`), unassigns their preset (`equippedPresets`) and removes them from the optimizer
-  donors. No store shape change. The calculator creates an empty record for whichever character
-  it opens (on first launch, the newest five-star), so that character reappears here if opened again.
+  donors. No store shape change. If the removed character was the calculator's active one,
+  `CharactersView` switches it to `pickNextActiveCharacter` (first saved favorite, else first by
+  name), because the calculator creates an empty record for whichever character it opens. Only
+  when nobody is left does it fall back to its default (the newest five-star).
 - Missing images fall back to initials (`CharacterAvatar.vue`) or a neutral placeholder
   (`src/components/AppImage.vue`).
 

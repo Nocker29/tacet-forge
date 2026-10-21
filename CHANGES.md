@@ -60,3 +60,5 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
 - **Remove a character** from the Characters page: "Remove character" in its details
   (with a confirmation) deletes the saved record with all builds, buffs and rotations.
   Its echoes stay in the inventory, just unequipped; its preset is unassigned, not deleted.
+  Removing the character open in the calculator switches the calculator to your first
+  favorite still saved, else the first remaining character by name.
