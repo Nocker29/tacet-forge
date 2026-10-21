@@ -1,23 +1,23 @@
 <template>
   <div>
-    <div class="buffs__header flex flex-wrap items-center justify-between gap-4 mb-4 rounded-lg bg-base-200 p-1 pl-3">
+    <div class="buffs__header mb-2 rounded-lg bg-base-200 p-1 pl-3 min-h-10 flex items-center">
       <h3 class="text-sm font-semibold">Character Buffs</h3>
-      <div class="flex flex-wrap gap-2">
-        <button
-          type="button"
-          class="btn btn-sm"
-          data-test-character-buffs-enable-all
-          @click="enableAllCharacterBuffs">
-          Enable all
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm"
-          data-test-character-buffs-max-all
-          @click="maxAllCharacterBuffs">
-          Max all
-        </button>
-      </div>
+    </div>
+    <div class="flex flex-wrap gap-2 mb-2 px-2" role="group" aria-label="Change all character buffs">
+      <button
+        type="button"
+        class="btn btn-sm"
+        data-test-character-buffs-enable-all
+        @click="enableAllCharacterBuffs">
+        Enable all
+      </button>
+      <button
+        type="button"
+        class="btn btn-sm"
+        data-test-character-buffs-max-all
+        @click="maxAllCharacterBuffs">
+        Max all
+      </button>
     </div>
     <div v-if="buffs" class="character__buffs p-2">
       <div v-if="statBonusGrid" class="stat-bonus-grid mb-4 relative mt-4">

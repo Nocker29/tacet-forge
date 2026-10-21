@@ -295,6 +295,7 @@
         <div class="optimizer-target-options flex gap-2">
           <CalculatorOptimizerSettings
             :character="character"
+            :set-filters="setFilters"
             :current-ignore-other-resonantor-echoes="
               ignoreOtherResonantorEchoes
             "

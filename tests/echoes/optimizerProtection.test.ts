@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import {
+  countHeldEchoes,
   deriveLegacyDonors,
   filterEchoesBySets,
   getEchoHolders,
@@ -183,5 +184,19 @@ describe("inventory store integration", () => {
     });
     expect(inventory.equippedPresets).toEqual({ Verina: "p1" });
     expect(inventory.optimizerDonors).toEqual(["Verina"]);
+  });
+});
+
+describe("countHeldEchoes", () => {
+  it("counts each holder of the given echoes, skipping echoes not in the list", () => {
+    const holders = new Map([
+      ["e1", new Set(["Jinhsi"])],
+      ["e2", new Set(["Jinhsi", "Changli"])],
+      ["e3", new Set(["Verina"])],
+    ]);
+    expect(Object.fromEntries(countHeldEchoes(["e1", "e2", "e9"], holders))).toEqual({
+      Jinhsi: 2,
+      Changli: 1,
+    });
   });
 });

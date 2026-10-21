@@ -60,4 +60,49 @@ describe("OptimizerProtectedCharacters", () => {
     render(OptimizerProtectedCharacters, { props: { character: "Carlotta" } });
     expect(document.querySelector("[data-test-optimizer-protected-empty]")).not.toBeNull();
   });
+
+  describe("with eligible echo sets", () => {
+    function setupSets(setFilters: string[]) {
+      const inventory = useInventoryStore();
+      inventory.hardSetState({
+        echoes: [
+          { echoId: "e1", echoSet: "Snow" },
+          { echoId: "e2", echoSet: "Wind" },
+          { echoId: "e3", echoSet: "Snow" },
+        ],
+        equipped: { e1: { Jinhsi: 0 }, e2: { Changli: 0 }, e3: { Carlotta: 0 } },
+      });
+      render(OptimizerProtectedCharacters, { props: { character: "Carlotta", setFilters } });
+      return inventory;
+    }
+
+    it("only lists characters holding echoes in those sets", () => {
+      setupSets(["Snow"]);
+      expect(state("Jinhsi")).toBe("protected");
+      expect(state("Changli")).toBeUndefined();
+      const summary = document.querySelector("[data-test-optimizer-protected-summary]")!.textContent!;
+      expect(summary.replace(/\s+/g, " ")).toContain("1 of 2 echoes available, 1 excluded");
+    });
+
+    it("lists everyone when no set is chosen", () => {
+      setupSets([]);
+      expect(state("Jinhsi")).toBe("protected");
+      expect(state("Changli")).toBe("protected");
+    });
+
+    it("bulk buttons leave hidden characters' state alone", async () => {
+      const inventory = setupSets(["Snow"]);
+      inventory.setOptimizerDonors(["Changli"]);
+      await fireEvent.click(screen.getByRole("button", { name: "Protect all" }));
+      expect(inventory.optimizerProtection).toEqual({ donors: ["Changli"] });
+      await fireEvent.click(screen.getByRole("button", { name: "Unlock all" }));
+      expect(inventory.optimizerProtection).toEqual({ donors: ["Changli", "Jinhsi"] });
+    });
+
+    it("explains when nobody else's echoes are in the chosen sets", () => {
+      setupSets(["Other"]);
+      const empty = document.querySelector("[data-test-optimizer-protected-empty]");
+      expect(empty?.textContent).toContain("eligible echo sets");
+    });
+  });
 });

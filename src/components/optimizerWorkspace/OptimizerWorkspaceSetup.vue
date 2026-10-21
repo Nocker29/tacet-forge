@@ -191,6 +191,7 @@
           </div>
           <CalculatorOptimizerSettings
             :character="character"
+            :set-filters="setFilters"
             :current-ignore-other-resonantor-echoes="ignoreOtherResonantorEchoes"
             :current-loadout-format="loadoutFormat"
             @optimizer:settings-updated="
