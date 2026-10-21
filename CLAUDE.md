@@ -103,7 +103,7 @@ Optimizer: main thread builds OptimizerContext
 
 This checkout is **Tacet Forge**, a fork of Wuthering Tools (upstream commit `4d8d068`). Rules for work in the fork, on top of everything above:
 
-- **Licence.** `LICENSE` (GPL-3.0) stays unchanged. Keep the original credits in `src/components/info/InfoCredits.vue` and the "based on Wuthering Tools" notice. Every user-visible change gets a dated entry in `CHANGES.md` (GPL §5a). Fork identity/links live in `src/utils/forkInfo.ts` (`FORK_REPO_URL` is a placeholder until github.com/Nocker29/tacet-forge exists).
+- **Licence.** `LICENSE` (GPL-3.0) stays unchanged. Keep the original credits in `src/components/info/InfoCredits.vue` and the "based on Wuthering Tools" notice. Every user-visible change gets a dated entry in `CHANGES.md` (GPL §5a). Fork identity/links live in `src/utils/forkInfo.ts` (`FORK_REPO_URL` = github.com/Nocker29/tacet-forge, remote `origin`; `upstream` is fetch-only).
 - **No analytics, ads, payments or donations.** Umami is removed; `trackEvent` is a no-op. Don't add tracking or upstream Discord links back.
 - **Images stay hotlinked** (api.encore.moe, ryanbenson.github.io/wuthering-waves-assets, static.nanoka.cc); don't copy them into the repo. See `docs/fork-hosting.md`.
 - **Wavescan / OCR scanner is disabled** behind `src/utils/forkFeatures.ts`; the production build must pass without `SCANNER_DATA_SIGNING_KEY`. Keep the scanner code so it can be re-enabled.

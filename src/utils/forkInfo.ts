@@ -1,7 +1,6 @@
 /**
  * Identity of this fork (GPL-3.0 §5a: the app says it is a modified version and
- * where its source lives). FORK_REPO_URL is a placeholder until the repository
- * github.com/Nocker29/tacet-forge is created.
+ * where its source lives).
  */
 export const APP_NAME = "Tacet Forge";
 export const FORK_REPO_URL = "https://github.com/Nocker29/tacet-forge";
