@@ -317,6 +317,35 @@ export const useCharacterStore = defineStore("character", {
         }
       });
     },
+    /**
+     * Removes a character's saved record (all builds, buffs, rotations) and
+     * frees what it holds in the inventory: its echoes are unequipped, not
+     * deleted, its assigned preset is unassigned (the preset itself stays) and
+     * it leaves the optimizer's donor list. Returns false if there was nothing
+     * to remove. The calculator recreates an empty record for whichever
+     * character it shows, so the active one is cleared too.
+     */
+    deleteCharacter(characterId) {
+      if (!this.characters[characterId]) {
+        return false;
+      }
+      delete this.characters[characterId];
+      this.favoriteCharacters = this.favoriteCharacters.filter((id) => id !== characterId);
+      if (this.activeCharacter === characterId) {
+        this.activeCharacter = "";
+      }
+
+      const inventoryStore = useInventoryStore();
+      inventoryStore.$patch((state) => {
+        removeCharacterFromEquippedMap(state.equipped, characterId);
+        delete state.equippedPresets[characterId];
+      });
+      const donors = inventoryStore.optimizerDonors;
+      if (donors.includes(characterId)) {
+        inventoryStore.setOptimizerDonors(donors.filter((donor) => donor !== characterId));
+      }
+      return true;
+    },
     hardSetState(data) {
       this.characters = data.characters;
       this.activeCharacter = data.activeCharacter;

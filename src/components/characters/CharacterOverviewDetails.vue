@@ -142,6 +142,13 @@
       <div class="flex flex-wrap justify-end gap-2">
         <button
           type="button"
+          class="btn btn-sm btn-ghost text-error sm:mr-auto"
+          data-test-character-details-delete
+          @click="character && emit('delete', character.key)">
+          Remove character
+        </button>
+        <button
+          type="button"
           class="btn btn-sm"
           data-test-character-details-open-optimizer
           @click="character && emit('open-optimizer', character.key)">
@@ -184,6 +191,7 @@ const emit = defineEmits<{
   close: [];
   "open-calculator": [key: string];
   "open-optimizer": [key: string];
+  delete: [key: string];
 }>();
 
 const modalRef = ref<InstanceType<typeof AppChooserModal> | null>(null);

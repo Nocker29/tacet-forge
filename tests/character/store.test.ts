@@ -305,3 +305,54 @@ describe("useCharacterStore builds", () => {
     });
   });
 });
+
+describe("useCharacterStore deleteCharacter", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it("removes the record and frees the character's echoes without deleting them", () => {
+    const store = useCharacterStore();
+    const inventory = useInventoryStore();
+    store.setCharacterData("Aemeath", { weapon: "SomeSword" });
+    store.setCharacterData("Carlotta", { weapon: "SwordOfVoid" });
+    store.toggleFavoriteCharacter("Aemeath");
+    store.setActiveCharacter("Aemeath");
+    inventory.echoes = [{ echoId: "e1" }, { echoId: "e2" }];
+    inventory.equipped = { e1: { Aemeath: 0 }, e2: { Aemeath: 1, Carlotta: 0 } };
+    inventory.echoPresets = [{ presetId: "p1", echo1Id: "e1" }];
+    inventory.equippedPresets = { Aemeath: "p1", Carlotta: "p1" };
+    inventory.setOptimizerDonors(["Aemeath", "Carlotta"]);
+
+    expect(store.deleteCharacter("Aemeath")).toBe(true);
+
+    expect(store.characters).not.toHaveProperty("Aemeath");
+    expect(store.characters).toHaveProperty("Carlotta");
+    expect(store.favoriteCharacters).toEqual([]);
+    expect(store.activeCharacter).toBe("");
+    expect(inventory.echoes).toHaveLength(2);
+    expect(inventory.equipped.e1).toEqual({});
+    expect(inventory.equipped.e2).toEqual({ Carlotta: 0 });
+    expect(inventory.echoPresets).toHaveLength(1);
+    expect(inventory.equippedPresets).toEqual({ Carlotta: "p1" });
+    expect(inventory.optimizerDonors).toEqual(["Carlotta"]);
+  });
+
+  it("keeps the active character and protection state when deleting someone else", () => {
+    const store = useCharacterStore();
+    const inventory = useInventoryStore();
+    store.setCharacterData("Aemeath", {});
+    store.setCharacterData("Carlotta", {});
+    store.setActiveCharacter("Carlotta");
+
+    expect(store.deleteCharacter("Aemeath")).toBe(true);
+
+    expect(store.activeCharacter).toBe("Carlotta");
+    expect(inventory.optimizerProtection).toBeNull();
+  });
+
+  it("returns false for a character without a record", () => {
+    const store = useCharacterStore();
+    expect(store.deleteCharacter("Nobody")).toBe(false);
+  });
+});

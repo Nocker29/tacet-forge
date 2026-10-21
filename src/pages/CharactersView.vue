@@ -120,7 +120,8 @@
       :character="selectedCharacter"
       @close="selectedKey = null"
       @open-calculator="openInCalculator"
-      @open-optimizer="openInOptimizer" />
+      @open-optimizer="openInOptimizer"
+      @delete="deleteCharacter" />
   </div>
 </template>
 
@@ -145,6 +146,8 @@ import {
 import { useCharacterStore } from "../stores/character";
 import { useSettingsStore } from "../stores/settings";
 import { useDocumentTitle } from "../composables/useDocumentTitle";
+import { useConfirm } from "../composables/useConfirm";
+import { useToast } from "../composables/useToast";
 
 useDocumentTitle("Characters — Tacet Forge", "Every character you've set up, with their build at a glance.");
 
@@ -152,6 +155,8 @@ const router = useRouter();
 const characterStore = useCharacterStore();
 const { characters } = storeToRefs(characterStore);
 const settingsStore = useSettingsStore();
+const { confirm } = useConfirm();
+const { showToast } = useToast();
 
 const search = ref("");
 const filterElement = ref<string | null>(null);
@@ -228,5 +233,18 @@ function openInCalculator(key: string) {
 
 function openInOptimizer(key: string) {
   openCharacter(key, "optimizer");
+}
+
+// The details modal is closed first so the confirm dialog isn't stacked under it.
+async function deleteCharacter(key: string) {
+  const name = savedCharacters.value.find((character) => character.key === key)?.name ?? key;
+  detailsRef.value?.triggerCloseModal();
+  const confirmed = await confirm(
+    `Remove ${name} and all of their builds, buffs and rotations? Their echoes stay in your inventory, just unequipped.`,
+    { title: "Remove character", confirmLabel: "Remove", variant: "error" },
+  );
+  if (!confirmed) return;
+  characterStore.deleteCharacter(key);
+  showToast(`${name} removed`, "success");
 }
 </script>
