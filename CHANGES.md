@@ -83,6 +83,13 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   test no longer depends on the computer's number format.
 - Merged Wuthering Tools up to `1982e518`: Suoming released, Unspoken Rue weapon details
   restored. Kept `public/sitemap.xml` removed.
+- **Remove duplicates** (Inventory → Echoes, next to Find duplicates): deletes extra copies of
+  exact duplicates after a confirmation listing them. One copy per group stays; copies on a
+  character, in a preset or locked are always kept, otherwise a favorite, else the oldest.
+- **Duplicate question on import.** Importing echoes (Settings → Backup & Restore → Import echoes,
+  and the image importer) asks "N possible duplicates found — Skip duplicates / Import anyway"
+  (the image importer also offers Review…). Copies repeated inside one import count too. A full
+  backup restore replaces all data, so it doesn't ask.
 - Protected characters only lists characters holding echoes in the optimizer's eligible echo
   sets (all sets when none is picked); the others don't affect the run. Their protected/donor
   state is kept, and Protect all / Unlock all / Invert only change the characters shown.

@@ -62,3 +62,17 @@ history is in [CHANGES.md](../CHANGES.md).
 - No pre-run combination estimate: the count is only known inside the generator workers, and
   "Select all" can't make the search larger than picking every set by hand. The run-bar chip
   shows how many echoes the chosen sets leave.
+
+## Duplicate echoes
+
+- Logic (pure, tested): `src/echoes/duplicateCleanup.ts` — `planDuplicateRemoval` (groups by
+  `getEchoIdentityKey`, the same key as Find duplicates; keeps held/locked copies, else a
+  favorite, else the oldest) and `findIncomingDuplicates` (inventory + repeats in the batch).
+- UI: "Remove duplicates" in `InventoryEchoesBrowser.vue` deletes through `removeEchoesFully`
+  (clears character slots of deleted echoes; held copies are never in the plan).
+- Import question: `useDuplicateImportPrompt` (built on the new `useConfirm().choose`, a
+  multi-button `ConfirmDialog`). Used by `importEchoesFromRaw` callers (`SettingsImport.vue`,
+  `SettingsBackupRestore.vue`) and `useEchoDuplicateReview` (image importer / scanner, adds
+  Review…; cancelling there opens the review list). `applyImportedDatabase` replaces all data
+  and doesn't ask.
+

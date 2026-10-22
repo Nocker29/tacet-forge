@@ -64,6 +64,7 @@
 import { ref } from "vue";
 import { useInventoryStore } from "../stores/inventory";
 import { useToast } from "../composables/useToast";
+import { useDuplicateImportPrompt } from "../composables/useDuplicateImportPrompt";
 import {
   applyImportedDatabase,
   importEchoesFromRaw,
@@ -71,6 +72,7 @@ import {
 } from "../utils/settingsBackup";
 
 const { showToast } = useToast();
+const { askAboutDuplicates } = useDuplicateImportPrompt();
 
 const importedRawCharacterData = ref("");
 const importEchoesAddRawText = ref("");
@@ -138,11 +140,14 @@ function confirmUpload() {
 
 async function importEchoesAddRaw() {
   try {
-    const amount = await importEchoesFromRaw(
+    const result = await importEchoesFromRaw(
       importEchoesAddRawText.value,
       inventoryStore,
+      (duplicateCount, totalCount) => askAboutDuplicates(duplicateCount, totalCount) as Promise<"skip" | "import" | null>,
     );
-    showToast(`Imported ${amount} echoes.`, "success");
+    if (!result) return;
+    const skipped = result.skipped ? ` Skipped ${result.skipped} duplicate${result.skipped === 1 ? "" : "s"}.` : "";
+    showToast(`Imported ${result.imported} echoes.${skipped}`, "success");
   } catch (e) {
     showToast(`Failed to import echoes: ${e}`, "error");
   }

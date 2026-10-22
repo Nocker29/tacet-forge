@@ -16,6 +16,8 @@ import { mapParsedEchoes, type MappedEcho, type ParsedEcho } from "../echoes/par
 import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
 import { buildIdentityKeySet, getEchoIdentityKey } from "../utils/echoIdentity";
+import { findIncomingDuplicates } from "../echoes/duplicateCleanup";
+import { useDuplicateImportPrompt } from "./useDuplicateImportPrompt";
 
 export type DuplicateReviewItem = {
   index: number;
@@ -33,6 +35,7 @@ export function useEchoDuplicateReview(options: {
 }) {
   const characterStore = useCharacterStore();
   const inventoryStore = useInventoryStore();
+  const { askAboutDuplicates } = useDuplicateImportPrompt();
 
   const isReviewingDuplicates = ref(false);
   const duplicateReviewItems = ref<DuplicateReviewItem[]>([]);
@@ -43,13 +46,6 @@ export function useEchoDuplicateReview(options: {
   function resetDuplicateReview() {
     isReviewingDuplicates.value = false;
     duplicateReviewItems.value = [];
-  }
-
-  function isExactInventoryMatch(echo: MappedEcho, inventoryKeys: Set<string>) {
-    if (!echo.echo) {
-      return false;
-    }
-    return inventoryKeys.has(getEchoIdentityKey(echo));
   }
 
   async function saveSelectedToInventory(
@@ -142,24 +138,34 @@ export function useEchoDuplicateReview(options: {
       return;
     }
 
-    const inventoryKeys = buildIdentityKeySet(inventoryStore.echoes);
-    const reviewItems: DuplicateReviewItem[] = echoes.map((echo, index) => {
-      const isDuplicate = isExactInventoryMatch(echo, inventoryKeys);
-      return {
-        index,
-        echo,
-        isDuplicate,
-        selected: !isDuplicate,
-      };
-    });
-
-    const hasDuplicates = reviewItems.some((item) => item.isDuplicate);
-    if (!hasDuplicates) {
-      await finalizeImport(echoes, new Set(echoes.map((_, index) => index)));
+    const duplicates = findIncomingDuplicates(
+      echoes,
+      buildIdentityKeySet(inventoryStore.echoes),
+      (echo) => (echo.echo ? getEchoIdentityKey(echo) : null),
+    );
+    const allIndexes = echoes.map((_, index) => index);
+    if (!duplicates.size) {
+      await finalizeImport(echoes, new Set(allIndexes));
       return;
     }
 
-    duplicateReviewItems.value = reviewItems;
+    // Cancelling the question falls back to the review list, so nothing is lost.
+    const choice = await askAboutDuplicates(duplicates.size, echoes.length, { canReview: true });
+    if (choice === "skip") {
+      await finalizeImport(echoes, new Set(allIndexes.filter((index) => !duplicates.has(index))));
+      return;
+    }
+    if (choice === "import") {
+      await finalizeImport(echoes, new Set(allIndexes));
+      return;
+    }
+
+    duplicateReviewItems.value = echoes.map((echo, index) => ({
+      index,
+      echo,
+      isDuplicate: duplicates.has(index),
+      selected: !duplicates.has(index),
+    }));
     isReviewingDuplicates.value = true;
   }
 

@@ -255,3 +255,36 @@ describe("InventoryEchoesBrowser bulk delete confirmation", () => {
     expect(confirmRequest.value?.message).toContain("1 locked echo");
   });
 });
+
+describe("InventoryEchoesBrowser remove duplicates", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it("is disabled without duplicates", () => {
+    useInventoryStore().echoes = [makeCompleteInventoryEcho("a", ELITE_ECHO, 3, "EnergyRegen")];
+    const { container } = renderBrowser();
+    expect(container.querySelector<HTMLButtonElement>("[data-test-remove-duplicates]")?.disabled).toBe(true);
+  });
+
+  it("deletes the extra copies after confirming and keeps the equipped one", async () => {
+    const inventoryStore = useInventoryStore();
+    inventoryStore.echoes = [
+      makeCompleteInventoryEcho("old", ELITE_ECHO, 3, "EnergyRegen"),
+      makeCompleteInventoryEcho("worn", ELITE_ECHO, 3, "EnergyRegen"),
+      makeCompleteInventoryEcho("new", ELITE_ECHO, 3, "EnergyRegen"),
+      makeCompleteInventoryEcho("other", COMMON_ECHO, 1, "ATK"),
+    ];
+    inventoryStore.equipped = { worn: { Jinhsi: 0 } };
+    const { container } = renderBrowser();
+
+    await fireEvent.click(container.querySelector("[data-test-remove-duplicates]")!);
+    const { confirmRequest, settle } = useConfirm();
+    expect(confirmRequest.value?.message).toContain("Delete 2 extra copies from 1 duplicate group");
+    expect(confirmRequest.value?.items).toHaveLength(2);
+    settle(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(inventoryStore.echoes.map((echo: { echoId: string }) => echo.echoId)).toEqual(["worn", "other"]);
+  });
+});

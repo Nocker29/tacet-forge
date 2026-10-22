@@ -15,6 +15,8 @@ import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
 import { useTeamRotationsStore } from "../stores/teamRotations";
 import { randomString } from "./strings";
+import { buildIdentityKeySet, getEchoIdentityKey } from "./echoIdentity";
+import { findIncomingDuplicates } from "../echoes/duplicateCleanup";
 import {
   applyMigrationTransforms,
   CURRENT_DATA_VERSION,
@@ -176,14 +178,30 @@ export function applyImportedDatabase(raw: string) {
 
 /**
  * Parses a raw list of echoes and adds them to the inventory (additive,
- * does not touch existing echoes). Returns the number imported.
+ * does not touch existing echoes). When some are exact copies of inventory
+ * echoes (or repeat within the list), `decideDuplicates` picks whether to
+ * skip them, import them anyway, or cancel (null). Returns how many were
+ * imported and skipped, or null when cancelled.
  */
 export async function importEchoesFromRaw(
   rawText: string,
   inventoryStore: ReturnType<typeof useInventoryStore>,
-) {
+  decideDuplicates: (duplicateCount: number, totalCount: number) => Promise<"skip" | "import" | null> = async () =>
+    "import",
+): Promise<{ imported: number; skipped: number } | null> {
   const normalized = applyMigrationTransforms(rawText);
-  const data = JSON.parse(normalized) as unknown[];
+  const parsed = JSON.parse(normalized) as unknown[];
+  const duplicates = findIncomingDuplicates(
+    parsed,
+    buildIdentityKeySet(inventoryStore.echoes as never[]),
+    (echo) => ((echo as { echo?: unknown })?.echo ? getEchoIdentityKey(echo as never) : null),
+  );
+  let data = parsed;
+  if (duplicates.size) {
+    const choice = await decideDuplicates(duplicates.size, parsed.length);
+    if (choice == null) return null;
+    if (choice === "skip") data = parsed.filter((_, index) => !duplicates.has(index));
+  }
   let amount = 0;
   for (const echo of data) {
     let id = randomString();
@@ -198,7 +216,7 @@ export async function importEchoesFromRaw(
     await inventoryStore.saveEcho(echoItem as never);
     amount++;
   }
-  return amount;
+  return { imported: amount, skipped: parsed.length - amount };
 }
 
 /**

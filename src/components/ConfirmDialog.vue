@@ -19,11 +19,23 @@
             {{ item }}
           </li>
         </ul>
-        <div class="modal-action">
+        <div class="modal-action flex-wrap">
           <button type="button" class="btn" @click="handleCancel">
             {{ confirmRequest.cancelLabel }}
           </button>
+          <template v-if="confirmRequest.choices">
+            <button
+              v-for="choice in confirmRequest.choices"
+              :key="choice.value"
+              type="button"
+              :class="confirmButtonClasses[choice.variant ?? 'primary']"
+              :data-test-confirm-choice="choice.value"
+              @click="settle(choice.value)">
+              {{ choice.label }}
+            </button>
+          </template>
           <button
+            v-else
             type="button"
             :class="confirmButtonClasses[confirmRequest.variant]"
             @click="handleConfirm">
