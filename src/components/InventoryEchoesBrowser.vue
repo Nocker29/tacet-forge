@@ -78,6 +78,15 @@
         <button
           type="button"
           class="btn btn-sm btn-neutral"
+          :disabled="!duplicateRemoval.removeIds.length"
+          v-tooltip="'Delete extra copies of exact duplicates, keeping one of each (copies on a character, in a preset or locked are always kept)'"
+          data-test-remove-duplicates
+          @click="removeDuplicates">
+          Remove duplicates
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-neutral"
           :class="{ 'btn-active btn-warning': incompleteFilter }"
           v-tooltip="
             'Show only echoes missing an echo, set, main stat, or a substat'
@@ -775,6 +784,7 @@ import {
 } from "../utils/richSelectOptions";
 import { randomString } from "../utils/strings";
 import { getEchoIdentityKey } from "../utils/echoIdentity";
+import { planDuplicateRemoval } from "../echoes/duplicateCleanup";
 import { useConfirm } from "../composables/useConfirm";
 import { useEchoInventory } from "../composables/useEchoInventory";
 import { useToast } from "../composables/useToast";
@@ -1315,6 +1325,33 @@ async function bulkDelete() {
   } else if (skippedLocked > 0) {
     showToast("No echoes deleted; all selected were locked.", "warning");
   }
+}
+
+// Extra copies "Remove duplicates" would delete (see planDuplicateRemoval).
+const duplicateRemoval = computed(() =>
+  planDuplicateRemoval((echoes.value ?? []) as InventoryEchoRow[], getEchoIdentityKey, (echoId) =>
+    inventoryStore.echoHolders.has(echoId),
+  ),
+);
+
+async function removeDuplicates() {
+  const { removeIds, groupCount } = duplicateRemoval.value;
+  if (!removeIds.length) return;
+  const copies = `${removeIds.length} extra cop${removeIds.length === 1 ? "y" : "ies"}`;
+  const groups = `${groupCount} duplicate group${groupCount === 1 ? "" : "s"}`;
+  const confirmed = await confirm(
+    `Delete ${copies} from ${groups}? One copy of each stays; copies on a character, in a preset or locked are always kept. This cannot be undone.`,
+    {
+      title: "Remove duplicates",
+      confirmLabel: "Delete",
+      variant: "error",
+      items: removeIds.map((id) => describeEcho(getEchoById(id) ?? {})),
+    },
+  );
+  if (!confirmed) return;
+  const { deleted } = await removeEchoesFully(removeIds);
+  clearSelection();
+  showToast(`Removed ${deleted} duplicate echo${deleted === 1 ? "" : "es"}.`, "success");
 }
 
 function getCharsEquipped(e: { echoId: string }) {
