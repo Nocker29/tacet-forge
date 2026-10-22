@@ -103,13 +103,14 @@ Optimizer: main thread builds OptimizerContext
 
 This checkout is **Tacet Forge**, a fork of Wuthering Tools (upstream commit `4d8d068`). Rules for work in the fork, on top of everything above:
 
+- **Updating from upstream / merging:** follow [UPDATE-AI.md](UPDATE-AI.md) (remotes, merge procedure, conflict areas, migration numbering). Work on `master`; `start.bat` runs `scripts/update.mjs` there.
+
 - **Licence.** `LICENSE` (GPL-3.0) stays unchanged. Keep the original credits in `src/components/info/InfoCredits.vue` and the "based on Wuthering Tools" notice. Every user-visible change gets a dated entry in `CHANGES.md` (GPL §5a). Fork identity/links live in `src/utils/forkInfo.ts` (`FORK_REPO_URL` = github.com/Nocker29/tacet-forge, remote `origin`; `upstream` is fetch-only).
 - **No analytics, ads, payments or donations.** Umami is removed; `trackEvent` is a no-op. Don't add tracking or upstream Discord links back.
 - **Images stay hotlinked** (api.encore.moe, ryanbenson.github.io/wuthering-waves-assets, static.nanoka.cc); don't copy them into the repo. See `docs/fork-hosting.md`.
 - **Wavescan / OCR scanner is disabled** behind `src/utils/forkFeatures.ts`; the production build must pass without `SCANNER_DATA_SIGNING_KEY`. Keep the scanner code so it can be re-enabled.
 - **Don't rewrite** `src/calculator/`, `packages/formulas/`, `src/characters/`. Fork features reuse existing stores and components.
-- **Data.** Pinia + persistedstate → localStorage, plus the JSON backup (Settings → Backup & Restore). Every persisted-shape change = a new migration in `src/migrations/versions/` + a test that an old wutheringtools.com backup still loads. New settings must be included in the backup.
+- **Data.** Pinia + persistedstate → localStorage, plus the JSON backup (Settings → Backup & Restore). Every persisted-shape change = a new **fork** migration in `src/migrations/fork/` (never in `versions/`, that's upstream's timeline) + a test that an old wutheringtools.com backup still loads. New settings must be included in the backup.
 - **UI** must look at least as good as upstream: reuse components, DaisyUI/Tailwind classes and spacing; handle empty/loading/error states, long names, 40+ avatars, missing images; responsive (desktop + phone, no horizontal scroll); keyboard + aria labels. One dark theme only.
 - **Hosting**: static `dist/` (GitHub Pages/Vercel/Netlify) or `start.bat` (serves `dist/` on a fixed port, because localStorage is per origin and `file://` doesn't work). No public deploy without the owner's OK; no pushes to upstream.
 - **Definition of done per feature**: short plan first; tests + build pass; new tests; browser check desktop + phone; old localStorage/backup still loads; `CHANGES.md` entry; one local commit per feature; then code-review + simplify.
-- Known env quirk: on a Windows machine with a Polish locale, `tests/components/CalculatorLiveResultAttackGroup.test.ts` fails one assertion (`toLocaleString` gives `9210`, not `9,210`). It's a locale assumption in the test, not a regression.

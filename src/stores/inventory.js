@@ -27,7 +27,7 @@ export const useInventoryStore = defineStore("inventory", {
     /**
      * Characters whose echoes the optimizer may use; nobody (everyone
      * protected) until set. The old toggle is only read once, when seeding
-     * (migration 010 / ensureOptimizerProtection) — never at runtime, since
+     * (fork migration 1 / ensureOptimizerProtection) — never at runtime, since
      * the optimizer UIs still write that field on every save.
      */
     optimizerDonors: (state) => readProtectionState(state.optimizerProtection)?.donors ?? [],

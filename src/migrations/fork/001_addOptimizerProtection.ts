@@ -15,6 +15,9 @@ import {
  * `transform`: an imported backup gets the same seeding from
  * `inventoryStore.ensureOptimizerProtection()` in `applyImportedDatabase`.
  * Idempotent: does nothing when the field is already set.
+ *
+ * Fork migration 1 (src/migrations/fork.ts). It shipped first as upstream-track
+ * data version 10; `normalizeForkDataVersion` undoes that stamp.
  */
 export function seedOptimizerProtection(characterJson: string | null, inventoryJson: string): string {
   let inventory: Record<string, unknown>;
@@ -42,7 +45,7 @@ export function seedOptimizerProtection(characterJson: string | null, inventoryJ
 }
 
 const migration: Migration = {
-  version: 10,
+  version: 1,
   description:
     "Seed protected characters (inventory.optimizerProtection) from the old per-character ignore-equipped toggle",
   up() {

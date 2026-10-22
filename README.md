@@ -6,6 +6,8 @@ A Wuthering Waves damage calculator and echo optimizer that runs entirely in the
 > [Wuthering Tools](https://github.com/ryanbenson/wuthering-waves-optimizer) by @LavaSnake
 > and contributors, licensed under the GNU GPL v3 or later ([LICENSE](./LICENSE)).
 > What changed in the fork is listed in [CHANGES.md](./CHANGES.md).
+> Updating from upstream: `start.bat` offers updates on launch; the manual procedure for an
+> AI assistant is in [UPDATE-AI.md](./UPDATE-AI.md).
 > Not affiliated with Kuro Games. Non-commercial.
 
 ## UI & Tools

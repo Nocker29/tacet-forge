@@ -11,6 +11,12 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rem Offers updates from GitHub (this fork + Wuthering Tools); skipped when offline.
+rem UTF-8 console so the updater's Polish messages show correctly.
+chcp 65001 >nul
+where git >nul 2>nul
+if not errorlevel 1 node scripts\update.mjs
+
 if not exist "dist\index.html" (
   echo No build found - building the app first, this takes a minute...
   if not exist "node_modules" (
