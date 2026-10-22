@@ -3485,29 +3485,29 @@ export const allWeaponTeamBuffs = [
     details: `Inflicting Glacio Chafe grants Snow Taint for 6s. Applying healing grants Ripples for 6s. If the wielder has done both while on the field, the next Outro Skill grants both effects for 6s. When the wielder has both Snow Taint and Ripples, the ATK of all nearby Resonators in the team is increased by 20%/25%/30%/35%/40%. Effects of the same name do not stack.`,
     alwaysEnabled: false,
   },
-  // {
-  //   name: "Unspoken Rue",
-  //   key: "UnspokenRue",
-  //   weaponType: "Sword",
-  //   hasStacks: false,
-  //   imageUrl: "https://ryanbenson.github.io/wuthering-waves-assets/images/weapons/UnspokenRue.png",
-  //   modifiers: [
-  //     {
-  //       modifier: "Electro",
-  //       modifierByRefinement: {
-  //         "1": 0.24,
-  //         "2": 0.3,
-  //         "3": 0.36,
-  //         "4": 0.42,
-  //         "5": 0.48,
-  //       },
-  //     },
-  //   ],
-  //   minStacks: 0,
-  //   maxStacks: 0,
-  //   details: `Upon obtaining Unison, grants the Binding Mind effect and removes Yearning Mind: Resonators in the team gain 24%/30%/36%/42%/48% Electro DMG Bonus for 30/30/30/30/30s. Effects of the same name cannot stack.`,
-  //   alwaysEnabled: false,
-  // },
+  {
+    name: "Unspoken Rue",
+    key: "UnspokenRue",
+    weaponType: "Sword",
+    hasStacks: false,
+    imageUrl: "https://ryanbenson.github.io/wuthering-waves-assets/images/weapons/UnspokenRue.png",
+    modifiers: [
+      {
+        modifier: "Electro",
+        modifierByRefinement: {
+          "1": 0.24,
+          "2": 0.3,
+          "3": 0.36,
+          "4": 0.42,
+          "5": 0.48,
+        },
+      },
+    ],
+    minStacks: 0,
+    maxStacks: 0,
+    details: `Upon obtaining Unison, grants the Binding Mind effect and removes Yearning Mind: Resonators in the team gain 24%/30%/36%/42%/48% Electro DMG Bonus for 30/30/30/30/30s. Effects of the same name cannot stack.`,
+    alwaysEnabled: false,
+  },
 ];
 
 export const allCharacters: string[] = [
