@@ -42,8 +42,9 @@ describe("CalculatorLiveResultAttackGroup", () => {
 
   it("shows a peek of the top attack's average damage while collapsed, no table", () => {
     const { container } = renderGroup({ expanded: false });
+    // The component formats with the machine's locale (9,210 / 9 210 / 9210…).
     expect(container.querySelector("[data-test-live-result-attack-group-peek]")?.textContent).toContain(
-      "9,210",
+      (9210).toLocaleString(),
     );
     expect(container.querySelector("table")).toBeNull();
   });

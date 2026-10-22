@@ -66,6 +66,21 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   heading, above Stat Bonuses (v3 and classic).
 - Weapon: the header buttons (Enable all / Max all / Browse / Equip signature) sit right after
   the heading instead of at the far right (v3 and classic).
+
+## 2026-10-22
+
+- **Updates on launch.** `start.bat` runs `scripts/update.mjs`: it checks this fork and Wuthering
+  Tools on GitHub (skipped when offline), lists what's new and asks before installing. Installing
+  merges both, reinstalls dependencies if needed, runs the tests and the build, then pushes; any
+  failure rolls back to the previous version (code and `dist/`) and points to `UPDATE-AI.md`.
+- `UPDATE-AI.md`: how an AI assistant updates the fork from upstream by hand (remotes, conflict
+  areas, migration rule, checks).
+- Fork data migrations moved to their own timeline (`src/migrations/fork.ts`, key
+  `tacetForgeDataVersion`) so upstream's next migration merges unchanged. Profiles and backups
+  from the first fork release (stamped data version 10) are read as 9, so nothing is skipped;
+  exports now also carry `meta.forkDataVersion`.
+- Tests: one walks every character and echo set through the fork's features; the damage-peek
+  test no longer depends on the computer's number format.
 - Protected characters only lists characters holding echoes in the optimizer's eligible echo
   sets (all sets when none is picked); the others don't affect the run. Their protected/donor
   state is kept, and Protect all / Unlock all / Invert only change the characters shown.

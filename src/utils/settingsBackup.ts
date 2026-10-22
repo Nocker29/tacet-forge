@@ -23,6 +23,11 @@ import {
   parseMetaDataVersion,
   setStoredDataVersion,
 } from "../migrations";
+import {
+  CURRENT_FORK_DATA_VERSION,
+  markForkDataCurrent,
+  normalizeImportedDataVersion,
+} from "../migrations/fork";
 
 /**
  * Gets all of the data to save
@@ -31,6 +36,8 @@ export function getExportData() {
   const meta = {
     version: String(getExportDataVersion()),
     source: "WutheringTools",
+    // Tacet Forge: our own migration timeline (src/migrations/fork.ts).
+    forkDataVersion: String(CURRENT_FORK_DATA_VERSION),
   };
   const data = {
     character: localStorage.getItem("character"),
@@ -96,14 +103,18 @@ export function getImportData(data: string | object, toParse = false) {
     dataVersion: 1,
   };
   const pd = parsedData as {
-    meta?: { version?: string | number };
+    meta?: { version?: string | number; forkDataVersion?: unknown };
     data?: { character?: unknown; inventory?: unknown; teamRotations?: unknown };
   };
   if (pd?.meta && hasNestedExportFormat(pd.meta)) {
     returnData.character = pd?.data?.character;
     returnData.inventory = pd?.data?.inventory;
     returnData.teamRotations = pd?.data?.teamRotations;
-    returnData.dataVersion = parseMetaDataVersion(pd.meta);
+    returnData.dataVersion = normalizeImportedDataVersion(
+      parseMetaDataVersion(pd.meta),
+      pd.meta,
+      pd?.data?.inventory,
+    );
   } else {
     returnData.character = parsedData;
     returnData.inventory = { echoes: [], equipped: {} };
@@ -151,7 +162,7 @@ export function applyImportedDatabase(raw: string) {
     parseStorePayload(importData.inventory, importData.dataVersion) as never,
   );
   // Backups from before protected characters: seed them from the imported
-  // characters' old ignore-equipped toggles (migration 010 can't, see there).
+  // characters' old ignore-equipped toggles (fork migration 1 can't, see there).
   inventoryStore.ensureOptimizerProtection();
   // Older exports (pre-version-5) never had team data — hardSetState
   // already treats undefined as "no teams" via `data?.teams ?? []`.
@@ -160,6 +171,7 @@ export function applyImportedDatabase(raw: string) {
   );
   // Transforms above bring data to the latest schema
   setStoredDataVersion(CURRENT_DATA_VERSION);
+  markForkDataCurrent();
 }
 
 /**

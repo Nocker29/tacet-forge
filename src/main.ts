@@ -8,6 +8,7 @@ import "floating-vue/dist/style.css";
 import { createPinia } from "pinia";
 import { createPersistedState } from "pinia-plugin-persistedstate";
 import { runMigrations } from "./migrations";
+import { normalizeForkDataVersion, runForkMigrations } from "./migrations/fork";
 
 import HomeView from "./pages/HomeView.vue";
 import OptimizerView from "./pages/OptimizerView.vue";
@@ -63,7 +64,9 @@ const router = createRouter({
 
 console.time("runMigrations");
 // Upgrade persisted localStorage before Pinia hydrates stores from it
+normalizeForkDataVersion();
 runMigrations();
+runForkMigrations();
 console.timeEnd("runMigrations");
 
 const pinia = createPinia();

@@ -167,3 +167,6 @@ packages/*/dist/
 
 # Tacet Forge offline package (npm run package:offline)
 tacet-forge-offline.zip
+
+# Tacet Forge updater (scripts/update.mjs); its log goes to logs/
+.dist-before-update/

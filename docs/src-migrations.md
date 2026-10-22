@@ -40,7 +40,17 @@ Documented at the top of `index.ts`:
 | 7 | Move `mainEcho.isEnabled`/`stacks` and `optimizer.mainEchoBuffs` into per-buff maps — see `versions/007_mainEchoBuffs.ts` |
 | 8 | Add `builds`/`activeBuildId` to character records, seeding a "Default build" from each character's existing data (issue #278) — see `versions/008_addCharacterBuilds.ts` |
 | 9 | Resolve echoes with both `locked` and `trash` set (locked wins) — see `versions/009_resolveEchoLockTrashConflicts.ts` |
-| 10 | Tacet Forge: seed `inventory.optimizerProtection` (protected characters) from the old per-character ignore-equipped toggle; no per-store transform, imports use `ensureOptimizerProtection()` — see `versions/010_addOptimizerProtection.ts` |
+
+### Tacet Forge: fork migrations
+
+The fork keeps its own migrations on a separate timeline so the table above stays identical to upstream's and upstream's next migration merges without renumbering (`src/migrations/fork.ts`):
+
+- Key `tacetForgeDataVersion`, `CURRENT_FORK_DATA_VERSION`; files in `src/migrations/fork/00N_*.ts`; every fork migration must be idempotent.
+- Startup (`main.ts`): `normalizeForkDataVersion()` → `runMigrations()` → `runForkMigrations()`. Import (`applyImportedDatabase`) runs `ensureOptimizerProtection()` and `markForkDataCurrent()`; exports add `meta.forkDataVersion`.
+- | Fork version | Meaning |
+  |---|---|
+  | 1 | Seed `inventory.optimizerProtection` (protected characters) from the old per-character ignore-equipped toggle — `fork/001_addOptimizerProtection.ts` |
+- History: fork version 1 first shipped (2026-10-21) as upstream-track version 10. `normalizeForkDataVersion` puts such a stored `dataVersion` back to 9 once (only when the fork key is missing), and `normalizeImportedDataVersion` reads an unmarked `meta.version: "10"` backup that contains `optimizerProtection` as 9, so upstream's own future 10 still runs for those users.
 
 ## Two call sites, two purposes
 
