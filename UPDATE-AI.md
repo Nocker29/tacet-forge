@@ -59,6 +59,9 @@ and `docs/fork-hosting.md`. Files upstream also edits, and what to keep:
 | Local running | `start.bat`, `scripts/{serve-dist,update,pack-offline}.mjs`, `.gitattributes`, `.gitignore` | fixed port 4317 (localStorage is per origin) |
 
 Typical conflicts:
+- **`public/sitemap.xml` modify/delete** (upstream refreshes it with every release note): keep it
+  deleted — `git rm public/sitemap.xml`. It points at upstream's domain. The updater does this
+  itself (`KEEP_DELETED` in `scripts/update.mjs`); add other files we delete on purpose there.
 - **Upstream edits a component we also changed** (`Calculator.vue`, `CalculatorOptimizer.vue`,
   `OptimizerWorkspaceSetup.vue`): take upstream's version, then re-apply our hunk (`git diff 4d8d068 HEAD -- <file>` on the pre-merge master shows it).
 - **`package.json` / `package-lock.json`**: take upstream's dependency changes, keep our name/homepage/bugs/scripts; regenerate the lockfile with `npm install` if needed, then `npm ci`.

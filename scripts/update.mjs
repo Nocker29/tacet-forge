@@ -30,6 +30,9 @@ const LOG = join(ROOT, "logs", "update-last.log");
 const DIST = join(ROOT, "dist");
 const DIST_BACKUP = join(ROOT, ".dist-before-update");
 const SHOWN_TITLES = 5;
+// Files the fork deleted on purpose that upstream keeps editing (a
+// modify/delete conflict on every release); a merge may keep them deleted.
+const KEEP_DELETED = new Set(["public/sitemap.xml"]);
 
 const commands = {
   test: process.env.TACET_UPDATE_TEST_CMD || "npx vitest run",
@@ -62,6 +65,17 @@ function run(label, command) {
   if (result.status === 0) return true;
   console.log(`  ✗ ${label} — nie powiodło się (szczegóły: logs\\update-last.log)`);
   return false;
+}
+
+/** Merges `ref`; a conflict only on KEEP_DELETED files is resolved by keeping them deleted. */
+function merge(ref, message) {
+  const args = ["merge", "--no-edit", ...(message ? ["-m", message] : []), ref];
+  if (git(args).ok) return true;
+  const conflicted = git(["diff", "--name-only", "--diff-filter=U"]).out.split(/\r?\n/).filter(Boolean);
+  if (!conflicted.length || !conflicted.every((file) => KEEP_DELETED.has(file))) return false;
+  for (const file of conflicted) git(["rm", "--quiet", file]);
+  log(`kept deleted: ${conflicted.join(", ")}`);
+  return git(["commit", "--no-edit"]).ok;
 }
 
 function commitsBetween(from, to) {
@@ -161,13 +175,10 @@ async function main() {
 
 async function install(startSha, fromOrigin, fromUpstream) {
   console.log("  • scalanie zmian…");
-  if (fromOrigin && !git(["merge", "--no-edit", `origin/${BRANCH}`]).ok) {
+  if (fromOrigin && !merge(`origin/${BRANCH}`)) {
     return rollback(startSha, false, "konflikt przy scalaniu zmian Tacet Forge");
   }
-  if (
-    fromUpstream &&
-    !git(["merge", "--no-edit", "-m", "Merge upstream Wuthering Tools into Tacet Forge", `upstream/${BRANCH}`]).ok
-  ) {
+  if (fromUpstream && !merge(`upstream/${BRANCH}`, "Merge upstream Wuthering Tools into Tacet Forge")) {
     return rollback(startSha, false, "konflikt przy scalaniu zmian z Wuthering Tools");
   }
 
