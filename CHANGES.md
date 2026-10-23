@@ -99,6 +99,11 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   characters stay.
 - **Import echoes → Choose JSON file…**: loads a .json file into the import box (checked for
   valid JSON, max 20 MB); importing is still a separate click. Both the new and classic Settings.
+- **Safer updates.** `start.bat` now installs updates only from this fork (fast-forward of
+  `origin/master`, where changes arrive through reviewed PRs), with `npm ci --ignore-scripts`, and
+  never pushes. New Wuthering Tools changes are only announced: an AI assistant merges them in a
+  PR after reviewing the diff. `UPDATE-AI.md` rewritten as a self-contained brief (rules, review
+  checklist before running upstream code, conflict map, red flags).
 - Protected characters only lists characters holding echoes in the optimizer's eligible echo
   sets (all sets when none is picked); the others don't affect the run. Their protected/donor
   state is kept, and Protect all / Unlock all / Invert only change the characters shown.

@@ -2,21 +2,25 @@
 /**
  * Tacet Forge self-update, run by start.bat before the app starts.
  *
- * Fetches origin (this fork) and upstream (Wuthering Tools). If either has
- * commits the local master lacks, shows a short summary and asks whether to
- * install them. Installing = merge origin, merge upstream, `npm ci` if the
- * lockfile changed, unit tests, build, push master to origin. Any failure
- * rolls the checkout back to the commit it started from and restores the
- * previous dist/, so the old version still starts. Never fails start.bat:
- * every outcome exits 0, and being offline just skips the check.
+ * Installs only from this fork (`origin`, github.com/Nocker29/tacet-forge),
+ * where code arrives through reviewed PRs: if origin/master is ahead, shows a
+ * short summary, asks, fast-forwards, runs `npm ci --ignore-scripts` if the
+ * lockfile changed, the unit tests and the build. It never merges or runs
+ * code from upstream (Wuthering Tools): new upstream commits are only
+ * announced, and an AI assistant merges them through a PR after reviewing
+ * the diff (UPDATE-AI.md). It never pushes.
  *
- * Messages are Polish (for the owner); see UPDATE-AI.md for the manual flow.
+ * Any failure resets the checkout to the commit it started from and restores
+ * the previous dist/, so the old version still starts. Never fails
+ * start.bat: every outcome exits 0, and being offline just skips the check.
+ *
+ * Messages are Polish (for the owner).
  *
  * Env (for scripted runs and tests):
  *   TACET_UPDATE_ANSWER       "T"/"N" instead of asking
  *   TACET_UPDATE_TEST_CMD     default "npx vitest run"
  *   TACET_UPDATE_BUILD_CMD    default "npm run build"
- *   TACET_UPDATE_INSTALL_CMD  default "npm ci"
+ *   TACET_UPDATE_INSTALL_CMD  default "npm ci --ignore-scripts"
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
@@ -30,14 +34,12 @@ const LOG = join(ROOT, "logs", "update-last.log");
 const DIST = join(ROOT, "dist");
 const DIST_BACKUP = join(ROOT, ".dist-before-update");
 const SHOWN_TITLES = 5;
-// Files the fork deleted on purpose that upstream keeps editing (a
-// modify/delete conflict on every release); a merge may keep them deleted.
-const KEEP_DELETED = new Set(["public/sitemap.xml"]);
+const ASK_CLAUDE = "Poproś Claude: „zaktualizuj Tacet Forge z Wuthering Tools” (instrukcja: UPDATE-AI.md).";
 
 const commands = {
   test: process.env.TACET_UPDATE_TEST_CMD || "npx vitest run",
   build: process.env.TACET_UPDATE_BUILD_CMD || "npm run build",
-  install: process.env.TACET_UPDATE_INSTALL_CMD || "npm ci",
+  install: process.env.TACET_UPDATE_INSTALL_CMD || "npm ci --ignore-scripts",
 };
 
 function git(args, { timeout = 60_000 } = {}) {
@@ -67,24 +69,12 @@ function run(label, command) {
   return false;
 }
 
-/** Merges `ref`; a conflict only on KEEP_DELETED files is resolved by keeping them deleted. */
-function merge(ref, message) {
-  const args = ["merge", "--no-edit", ...(message ? ["-m", message] : []), ref];
-  if (git(args).ok) return true;
-  const conflicted = git(["diff", "--name-only", "--diff-filter=U"]).out.split(/\r?\n/).filter(Boolean);
-  if (!conflicted.length || !conflicted.every((file) => KEEP_DELETED.has(file))) return false;
-  for (const file of conflicted) git(["rm", "--quiet", file]);
-  log(`kept deleted: ${conflicted.join(", ")}`);
-  return git(["commit", "--no-edit"]).ok;
-}
-
 function commitsBetween(from, to) {
   const res = git(["log", "--no-merges", "--format=%s", `${from}..${to}`]);
-  return res.ok && res.out ? res.out.split("\n") : [];
+  return res.ok && res.out ? res.out.split(/\r?\n/) : [];
 }
 
 function describe(name, titles) {
-  if (!titles.length) return null;
   const shown = titles.slice(0, SHOWN_TITLES).map((title) => `    - ${title}`);
   const more = titles.length > SHOWN_TITLES ? [`    … i ${titles.length - SHOWN_TITLES} więcej`] : [];
   const word = titles.length === 1 ? "zmiana" : titles.length < 5 ? "zmiany" : "zmian";
@@ -117,14 +107,13 @@ function restoreDist() {
 }
 
 function rollback(startSha, lockChanged, reason) {
-  git(["merge", "--abort"]);
   git(["reset", "--hard", startSha]);
   if (lockChanged) run("przywrócenie zależności", commands.install);
   restoreDist();
   console.log("");
   console.log(`Aktualizacja przerwana: ${reason}.`);
   console.log("Przywróciłem poprzednią wersję — aplikacja uruchomi się tak jak wcześniej.");
-  console.log("Poproś Claude o aktualizację — instrukcja: UPDATE-AI.md");
+  console.log("Poproś Claude o pomoc (instrukcja: UPDATE-AI.md, log: logs\\update-last.log).");
   console.log("");
 }
 
@@ -136,25 +125,42 @@ async function main() {
     return;
   }
 
-  const hasUpstream = git(["remote", "get-url", "upstream"]).ok;
   const fetchedOrigin = git(["fetch", "--quiet", "origin", BRANCH], { timeout: 20_000 }).ok;
+  const hasUpstream = git(["remote", "get-url", "upstream"]).ok;
   const fetchedUpstream = hasUpstream && git(["fetch", "--quiet", "upstream", BRANCH], { timeout: 20_000 }).ok;
   if (!fetchedOrigin && !fetchedUpstream) return; // offline: start as usual
 
+  // Upstream is only announced, counting what the fork itself still lacks.
+  const base = fetchedOrigin ? `origin/${BRANCH}` : "HEAD";
+  const fromUpstream = fetchedUpstream ? commitsBetween(base, `upstream/${BRANCH}`) : [];
+  if (fromUpstream.length) {
+    console.log("");
+    console.log("Nowe zmiany w Wuthering Tools (nie instaluję ich automatycznie):");
+    console.log(describe("Wuthering Tools", fromUpstream));
+    console.log(`  ${ASK_CLAUDE}`);
+  }
+
   const fromOrigin = fetchedOrigin ? commitsBetween("HEAD", `origin/${BRANCH}`) : [];
-  const fromUpstream = fetchedUpstream ? commitsBetween("HEAD", `upstream/${BRANCH}`) : [];
-  if (!fromOrigin.length && !fromUpstream.length) return;
+  if (!fromOrigin.length) {
+    if (fromUpstream.length) console.log("");
+    return;
+  }
 
   console.log("");
-  console.log("Dostępna aktualizacja:");
-  for (const line of [describe("Tacet Forge", fromOrigin), describe("Wuthering Tools", fromUpstream)]) {
-    if (line) console.log(line);
-  }
+  console.log("Dostępna aktualizacja Tacet Forge:");
+  console.log(describe("Tacet Forge", fromOrigin));
 
   if (git(["status", "--porcelain", "--untracked-files=no"]).out) {
     console.log("");
     console.log("W folderze są niezapisane zmiany w plikach projektu, więc nie aktualizuję.");
-    console.log("Poproś Claude o aktualizację — instrukcja: UPDATE-AI.md");
+    console.log("Poproś Claude o pomoc (instrukcja: UPDATE-AI.md).");
+    console.log("");
+    return;
+  }
+  if (!git(["merge-base", "--is-ancestor", "HEAD", `origin/${BRANCH}`]).ok) {
+    console.log("");
+    console.log("Lokalna wersja ma zmiany, których nie ma na GitHubie, więc nie aktualizuję.");
+    console.log("Poproś Claude o pomoc (instrukcja: UPDATE-AI.md).");
     console.log("");
     return;
   }
@@ -167,20 +173,18 @@ async function main() {
   log(`start: ${startSha}`);
   backupDist();
   try {
-    await install(startSha, fromOrigin.length > 0, fromUpstream.length > 0);
+    install(startSha);
   } catch (error) {
     rollback(startSha, true, `nieoczekiwany błąd (${error?.message ?? error})`);
   }
 }
 
-async function install(startSha, fromOrigin, fromUpstream) {
-  console.log("  • scalanie zmian…");
-  if (fromOrigin && !merge(`origin/${BRANCH}`)) {
-    return rollback(startSha, false, "konflikt przy scalaniu zmian Tacet Forge");
+function install(startSha) {
+  console.log("  • pobieranie zmian…");
+  if (!git(["merge", "--ff-only", "--quiet", `origin/${BRANCH}`]).ok) {
+    return rollback(startSha, false, "nie udało się pobrać zmian");
   }
-  if (fromUpstream && !merge(`upstream/${BRANCH}`, "Merge upstream Wuthering Tools into Tacet Forge")) {
-    return rollback(startSha, false, "konflikt przy scalaniu zmian z Wuthering Tools");
-  }
+  log(`now: ${git(["rev-parse", "HEAD"]).out}`);
 
   const lockChanged = !git(["diff", "--quiet", startSha, "HEAD", "--", "package-lock.json"]).ok;
   if (lockChanged) {
@@ -193,10 +197,8 @@ async function install(startSha, fromOrigin, fromUpstream) {
   if (!run("budowanie", commands.build)) return rollback(startSha, lockChanged, "budowanie się nie udało");
 
   rmSync(DIST_BACKUP, { recursive: true, force: true });
-  const pushed = git(["push", "--quiet", "origin", `HEAD:${BRANCH}`], { timeout: 60_000 }).ok;
   console.log("");
   console.log("Aktualizacja zakończona.");
-  if (!pushed) console.log("(Nie udało się wysłać zmian na GitHub — Claude zrobi to przy następnej aktualizacji.)");
   console.log("");
 }
 
