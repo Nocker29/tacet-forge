@@ -49,9 +49,26 @@
         v-model="importEchoesAddRawText"
         class="textarea textarea-bordered"
         data-test-import-raw-text-echoes></textarea>
-      <button @click="importEchoesAddRaw" class="btn btn-primary" data-test-import-raw-echoes-button>
-        Confirm Import Echoes
-      </button>
+      <input
+        ref="echoFileInput"
+        type="file"
+        accept=".json,application/json"
+        class="hidden"
+        data-test-import-echoes-file-input
+        @change="loadEchoFile" />
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="btn btn-outline"
+          aria-label="Choose a JSON file to load into the echo import box"
+          data-test-import-echoes-choose-file
+          @click="echoFileInput?.click()">
+          Choose JSON file…
+        </button>
+        <button @click="importEchoesAddRaw" class="btn btn-primary" data-test-import-raw-echoes-button>
+          Confirm Import Echoes
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -65,6 +82,7 @@ import { ref } from "vue";
 import { useInventoryStore } from "../stores/inventory";
 import { useToast } from "../composables/useToast";
 import { useDuplicateImportPrompt } from "../composables/useDuplicateImportPrompt";
+import { readJsonFile } from "../utils/jsonFile";
 import {
   applyImportedDatabase,
   importEchoesFromRaw,
@@ -73,6 +91,21 @@ import {
 
 const { showToast } = useToast();
 const { askAboutDuplicates } = useDuplicateImportPrompt();
+const echoFileInput = ref<HTMLInputElement | null>(null);
+
+// Loads a picked .json file into the echo import box; Import stays a separate click.
+async function loadEchoFile(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  const result = await readJsonFile(file);
+  if ("error" in result) {
+    showToast(result.error, "error");
+    return;
+  }
+  importEchoesAddRawText.value = result.text;
+}
 
 const importedRawCharacterData = ref("");
 const importEchoesAddRawText = ref("");

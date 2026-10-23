@@ -90,6 +90,15 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   and the image importer) asks "N possible duplicates found — Skip duplicates / Import anyway"
   (the image importer also offers Review…). Copies repeated inside one import count too. A full
   backup restore replaces all data, so it doesn't ask.
+
+## 2026-10-23
+
+- **Danger Zone → Delete all echoes**: deletes only the echo inventory. Echo slots in every
+  character build are emptied and echo presets removed (the confirmation lists this and suggests
+  a backup first); characters, weapons, buffs, rotations, teams, settings and protected
+  characters stay.
+- **Import echoes → Choose JSON file…**: loads a .json file into the import box (checked for
+  valid JSON, max 20 MB); importing is still a separate click. Both the new and classic Settings.
 - Protected characters only lists characters holding echoes in the optimizer's eligible echo
   sets (all sets when none is picked); the others don't affect the run. Their protected/donor
   state is kept, and Protect all / Unlock all / Invert only change the characters shown.
