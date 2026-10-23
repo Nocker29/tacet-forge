@@ -17,13 +17,13 @@ describe("importEchoesFromRaw duplicate handling", () => {
     const decide = vi.fn().mockResolvedValue("skip");
     const result = await importEchoesFromRaw(raw, useInventoryStore(), decide);
     expect(decide).toHaveBeenCalledWith(2, 3);
-    expect(result).toEqual({ imported: 1, skipped: 2 });
+    expect(result).toEqual({ imported: 1, skipped: 2, invalid: 0 });
     expect(useInventoryStore().echoes).toHaveLength(2);
   });
 
   it("imports everything when told to", async () => {
     const result = await importEchoesFromRaw(raw, useInventoryStore(), async () => "import");
-    expect(result).toEqual({ imported: 3, skipped: 0 });
+    expect(result).toEqual({ imported: 3, skipped: 0, invalid: 0 });
     expect(useInventoryStore().echoes).toHaveLength(4);
   });
 
@@ -36,6 +36,6 @@ describe("importEchoesFromRaw duplicate handling", () => {
     const decide = vi.fn();
     const result = await importEchoesFromRaw(JSON.stringify([{ ...base, stat: "ATK" }]), useInventoryStore(), decide);
     expect(decide).not.toHaveBeenCalled();
-    expect(result).toEqual({ imported: 1, skipped: 0 });
+    expect(result).toEqual({ imported: 1, skipped: 0, invalid: 0 });
   });
 });

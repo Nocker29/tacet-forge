@@ -3,12 +3,19 @@ import { createApp } from "vue";
 import "./style.css";
 import App from "./App.vue";
 import { createWebHistory, createRouter } from "vue-router";
-import FloatingVue from "floating-vue";
+import FloatingVue, { vTooltip } from "floating-vue";
+import type { DirectiveBinding } from "vue";
+import { sanitizeTooltipValue } from "./utils/sanitizeHtml";
 import "floating-vue/dist/style.css";
 import { createPinia } from "pinia";
 import { createPersistedState } from "pinia-plugin-persistedstate";
 import { runMigrations } from "./migrations";
 import { normalizeForkDataVersion, runForkMigrations } from "./migrations/fork";
+import { findStoredDataProblem, renderRecoveryScreen } from "./utils/safeMode";
+import { useCharacterStore } from "./stores/character";
+import { useInventoryStore } from "./stores/inventory";
+import { reportClassicUiSession } from "./composables/useClassicUi";
+import { applyAppTheme } from "./composables/useTheme";
 
 import HomeView from "./pages/HomeView.vue";
 import OptimizerView from "./pages/OptimizerView.vue";
@@ -62,37 +69,58 @@ const router = createRouter({
   routes,
 });
 
-console.time("runMigrations");
-// Upgrade persisted localStorage before Pinia hydrates stores from it
-normalizeForkDataVersion();
-runMigrations();
-runForkMigrations();
-console.timeEnd("runMigrations");
+// Tacet Forge: corrupted saved data (or a crash while loading it) shows a
+// recovery screen instead of a blank page (src/utils/safeMode.ts).
+const storedDataProblem = findStoredDataProblem();
+if (storedDataProblem) {
+  renderRecoveryScreen(storedDataProblem);
+} else {
+  try {
+    startApp();
+  } catch (error) {
+    console.error(error);
+    renderRecoveryScreen(`The app crashed while loading your data (${String(error)}).`);
+  }
+}
 
-const pinia = createPinia();
-pinia.use(
-  createPersistedState({
-    auto: true,
-  }),
-);
+function startApp() {
+  console.time("runMigrations");
+  // Upgrade persisted localStorage before Pinia hydrates stores from it
+  normalizeForkDataVersion();
+  runMigrations();
+  runForkMigrations();
+  console.timeEnd("runMigrations");
 
-const app = createApp(App).use(pinia).use(router).use(FloatingVue);
+  const pinia = createPinia();
+  pinia.use(
+    createPersistedState({
+      auto: true,
+    }),
+  );
 
-import { useCharacterStore } from "./stores/character";
-const characterStore = useCharacterStore();
-import { useInventoryStore } from "./stores/inventory";
-const inventoryStore = useInventoryStore();
+  const app = createApp(App).use(pinia).use(router).use(FloatingVue);
+  // Tacet Forge: tooltip HTML may contain values from user data (e.g. an
+  // imported backup), so it's sanitized before floating-vue renders it.
+  app.directive("tooltip", {
+    ...vTooltip,
+    beforeMount: (el: HTMLElement, binding: DirectiveBinding, ...rest: unknown[]) =>
+      (vTooltip.beforeMount as Function)(el, { ...binding, value: sanitizeTooltipValue(binding.value) }, ...rest),
+    updated: (el: HTMLElement, binding: DirectiveBinding, ...rest: unknown[]) =>
+      (vTooltip.updated as Function)(el, { ...binding, value: sanitizeTooltipValue(binding.value) }, ...rest),
+  });
 
-// Count sessions still on the classic UI (ADR 0038). Needs Pinia, so after .use(pinia).
-import { reportClassicUiSession } from "./composables/useClassicUi";
-reportClassicUiSession();
+  const characterStore = useCharacterStore();
+  const inventoryStore = useInventoryStore();
 
-import { applyAppTheme } from "./composables/useTheme";
-applyAppTheme();
+  // Count sessions still on the classic UI (ADR 0038). Needs Pinia, so after .use(pinia).
+  reportClassicUiSession();
 
-// prevent bfcache
-window.addEventListener("unload", () => {
-  console.log("unloading app");
-});
+  applyAppTheme();
 
-app.mount("#app");
+  // prevent bfcache
+  window.addEventListener("unload", () => {
+    console.log("unloading app");
+  });
+
+  app.mount("#app");
+}

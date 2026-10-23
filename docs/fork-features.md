@@ -87,3 +87,20 @@ history is in [CHANGES.md](../CHANGES.md).
   `SettingsImport.vue`) uses `readJsonFile` (`src/utils/jsonFile.ts`: FileReader, 20 MB cap,
   JSON check) and fills the box; the full-backup import already had its own file input.
 
+## Import safety
+
+- `src/utils/backupValidation.ts` (pure): structural checks for character/inventory/team states
+  and imported echoes; lenient on unknown fields and numeric strings, strict on container types,
+  numeric echo fields and `__proto__`/`constructor`/`prototype` keys.
+- `src/utils/settingsBackup.ts`: `prepareImport` (parse + migrate + check in memory, throws
+  `BackupImportError`), `applyImportedDatabase` (snapshot of the store states → undo copy in
+  localStorage `tacetForgeUndoImport` if it fits → apply → restore the snapshot on any error),
+  `getUndoImportInfo` / `getUndoImportBackupText` / `undoLastImport`. `importEchoesFromRaw`
+  filters with `checkImportedEcho` and assigns fresh ids.
+- UI: `src/composables/useBackupImport.ts` (messages, shared by `SettingsBackupRestore.vue` and
+  `SettingsImport.vue`); Undo section in `SettingsBackupRestore.vue`.
+- Startup: `src/utils/safeMode.ts` — `findStoredDataProblem` (only what stops the app loading:
+  JSON and top-level types) and `renderRecoveryScreen` (plain DOM); `main.ts` wraps startup.
+- Tooltips: `src/utils/sanitizeHtml.ts`; `main.ts` re-registers `v-tooltip` to sanitize
+  `{ content, html: true }` values. `v-html` sites render game data from code, not user data.
+
