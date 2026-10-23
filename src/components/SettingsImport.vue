@@ -79,18 +79,12 @@
  * See src/utils/settingsBackup.ts for the shared import/export/version logic.
  */
 import { ref } from "vue";
-import { useInventoryStore } from "../stores/inventory";
 import { useToast } from "../composables/useToast";
-import { useDuplicateImportPrompt } from "../composables/useDuplicateImportPrompt";
+import { useBackupImport } from "../composables/useBackupImport";
 import { readJsonFile } from "../utils/jsonFile";
-import {
-  applyImportedDatabase,
-  importEchoesFromRaw,
-  isJsonString,
-} from "../utils/settingsBackup";
 
 const { showToast } = useToast();
-const { askAboutDuplicates } = useDuplicateImportPrompt();
+const { importBackupText, importEchoesText } = useBackupImport();
 const echoFileInput = ref<HTMLInputElement | null>(null);
 
 // Loads a picked .json file into the echo import box; Import stays a separate click.
@@ -111,22 +105,12 @@ const importedRawCharacterData = ref("");
 const importEchoesAddRawText = ref("");
 const fileData = ref<string | null>(null);
 
-const inventoryStore = useInventoryStore();
 
 /**
  * Imports the raw character data through a given string in the input
  */
 function importRawCharacterData() {
-  if (!importedRawCharacterData.value) {
-    return showToast("No character data given", "error");
-  }
-  if (isJsonString(importedRawCharacterData.value) === false) {
-    return showToast("Character data given is invalid", "error");
-  }
-  applyImportedDatabase(importedRawCharacterData.value);
-  showToast("Your data has been overwritten!", "success");
-  importedRawCharacterData.value = "";
-  window.setTimeout(() => location.reload(), 1500);
+  if (importBackupText(importedRawCharacterData.value)) importedRawCharacterData.value = "";
 }
 
 /**
@@ -157,33 +141,11 @@ function handleFileUpload(event: Event) {
  * Confirms the file upload and overwrite the data
  */
 function confirmUpload() {
-  if (!fileData.value) {
-    showToast("No character data given", "error");
-    return;
-  }
-  if (isJsonString(fileData.value) === false) {
-    showToast("Character data given is invalid", "error");
-    return;
-  }
-  applyImportedDatabase(fileData.value);
-  showToast("Your data has been overwritten!", "success");
-  fileData.value = null;
-  window.setTimeout(() => location.reload(), 1500);
+  if (importBackupText(fileData.value)) fileData.value = null;
 }
 
 async function importEchoesAddRaw() {
-  try {
-    const result = await importEchoesFromRaw(
-      importEchoesAddRawText.value,
-      inventoryStore,
-      (duplicateCount, totalCount) => askAboutDuplicates(duplicateCount, totalCount) as Promise<"skip" | "import" | null>,
-    );
-    if (!result) return;
-    const skipped = result.skipped ? ` Skipped ${result.skipped} duplicate${result.skipped === 1 ? "" : "s"}.` : "";
-    showToast(`Imported ${result.imported} echoes.${skipped}`, "success");
-  } catch (e) {
-    showToast(`Failed to import echoes: ${e}`, "error");
-  }
+  await importEchoesText(importEchoesAddRawText.value);
 }
 </script>
 

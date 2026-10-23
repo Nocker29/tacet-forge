@@ -104,6 +104,18 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   never pushes. New Wuthering Tools changes are only announced: an AI assistant merges them in a
   PR after reviewing the diff. `UPDATE-AI.md` rewritten as a self-contained brief (rules, review
   checklist before running upstream code, conflict map, red flags).
+- **Safer backup import.** A backup is read, migrated and checked as a whole before anything
+  is written (size limit, valid JSON, no prototype keys, right shapes for characters, builds,
+  echoes, presets and teams, numbers where numbers belong). A bad file changes nothing and the
+  message says what's wrong. Applying is all-or-nothing, and the data from before the import is
+  kept: **Undo last import** (and a download of it) in Backup & Restore.
+- **Import echoes** leaves out entries that aren't echoes and always gives imported echoes new ids
+  (an import could previously overwrite an existing echo with the same id).
+- **Recovery screen**: if saved data is damaged (or the app crashes while loading it), a screen
+  offers downloading the raw data, restoring the pre-import copy, or resetting, instead of a
+  blank page.
+- Tooltip HTML is sanitized (allowlisted formatting tags only), so text from imported data
+  can't inject markup.
 - Protected characters only lists characters holding echoes in the optimizer's eligible echo
   sets (all sets when none is picked); the others don't affect the run. Their protected/donor
   state is kept, and Protect all / Unlock all / Invert only change the characters shown.

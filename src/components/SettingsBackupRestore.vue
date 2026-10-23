@@ -78,7 +78,7 @@
             stroke-width="2"
             d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4m0 4h.01" />
         </svg>
-        <span>This replaces all of your existing data — this can't be undone.</span>
+        <span>This replaces all of your existing data. The backup is checked first, and your current data is kept so you can undo the last import.</span>
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2">
@@ -117,6 +117,31 @@
         </div>
       </div>
     </div>
+
+    <div
+      v-if="undoInfo"
+      class="bg-base-200 rounded-xl p-4 flex flex-col gap-3"
+      data-test-undo-import>
+      <div class="text-[.65rem] font-bold uppercase tracking-wider opacity-50">
+        Undo last import
+      </div>
+      <p class="text-sm opacity-70">
+        Your data from before the backup import on {{ undoDate }} is kept. Put it back, or
+        download it as a backup file.
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="btn btn-sm btn-warning"
+          data-test-undo-import-button
+          @click="undoImport">
+          Undo last import
+        </button>
+        <button type="button" class="btn btn-sm btn-outline" data-test-undo-import-download @click="downloadUndoBackup">
+          Download pre-import data
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -128,22 +153,22 @@
  * All data logic is shared with legacy via src/utils/settingsBackup.ts —
  * see docs/adr/0022-settings-page-redesign.md.
  */
-import { ref } from "vue";
-import { useInventoryStore } from "../stores/inventory";
+import { computed, ref } from "vue";
 import { useToast } from "../composables/useToast";
-import { useDuplicateImportPrompt } from "../composables/useDuplicateImportPrompt";
+import { useBackupImport } from "../composables/useBackupImport";
 import { readJsonFile } from "../utils/jsonFile";
 import { downloadBlob } from "../utils/downloadFile";
 import {
-  applyImportedDatabase,
   generateExportFilename,
   getExportData,
-  importEchoesFromRaw,
-  isJsonString,
+  getUndoImportBackupText,
+  getUndoImportInfo,
+  undoLastImport,
 } from "../utils/settingsBackup";
+import { useConfirm } from "../composables/useConfirm";
 
 const { showToast } = useToast();
-const { askAboutDuplicates } = useDuplicateImportPrompt();
+const { importBackupText, importEchoesText } = useBackupImport();
 const echoFileInput = ref<HTMLInputElement | null>(null);
 
 // Loads a picked .json file into the echo import box; Import stays a separate click.
@@ -164,7 +189,32 @@ const importedRawCharacterData = ref("");
 const importEchoesAddRawText = ref("");
 const fileData = ref<string | null>(null);
 
-const inventoryStore = useInventoryStore();
+
+// "Undo last import": the data from before the last backup import, if kept.
+const undoInfo = ref(getUndoImportInfo());
+const undoDate = computed(() => (undoInfo.value ? new Date(undoInfo.value.savedAt).toLocaleString() : ""));
+const { confirm } = useConfirm();
+
+async function undoImport() {
+  const confirmed = await confirm(
+    "Replace your current characters, inventory and teams with the data from before the last backup import?",
+    { title: "Undo last import", confirmLabel: "Undo import", variant: "warning" },
+  );
+  if (!confirmed) return;
+  if (!undoLastImport()) {
+    showToast("There's no earlier data to restore.", "error");
+    undoInfo.value = null;
+    return;
+  }
+  undoInfo.value = null;
+  showToast("Your data from before the import is back.", "success");
+  window.setTimeout(() => location.reload(), 1500);
+}
+
+function downloadUndoBackup() {
+  const text = getUndoImportBackupText();
+  if (text) downloadBlob(text, `before-import-${generateExportFilename()}`);
+}
 
 function copyCharacterData() {
   const data = getExportData();
@@ -179,16 +229,7 @@ function downloadCharacterData() {
 }
 
 function importRawCharacterData() {
-  if (!importedRawCharacterData.value) {
-    return showToast("No character data given", "error");
-  }
-  if (isJsonString(importedRawCharacterData.value) === false) {
-    return showToast("Character data given is invalid", "error");
-  }
-  applyImportedDatabase(importedRawCharacterData.value);
-  showToast("Your data has been overwritten!", "success");
-  importedRawCharacterData.value = "";
-  window.setTimeout(() => location.reload(), 1500);
+  if (importBackupText(importedRawCharacterData.value)) importedRawCharacterData.value = "";
 }
 
 function handleFileUpload(event: Event) {
@@ -213,32 +254,10 @@ function handleFileUpload(event: Event) {
 }
 
 function confirmUpload() {
-  if (!fileData.value) {
-    showToast("No character data given", "error");
-    return;
-  }
-  if (isJsonString(fileData.value) === false) {
-    showToast("Character data given is invalid", "error");
-    return;
-  }
-  applyImportedDatabase(fileData.value);
-  showToast("Your data has been overwritten!", "success");
-  fileData.value = null;
-  window.setTimeout(() => location.reload(), 1500);
+  if (importBackupText(fileData.value)) fileData.value = null;
 }
 
 async function importEchoesAddRaw() {
-  try {
-    const result = await importEchoesFromRaw(
-      importEchoesAddRawText.value,
-      inventoryStore,
-      (duplicateCount, totalCount) => askAboutDuplicates(duplicateCount, totalCount) as Promise<"skip" | "import" | null>,
-    );
-    if (!result) return;
-    const skipped = result.skipped ? ` Skipped ${result.skipped} duplicate${result.skipped === 1 ? "" : "s"}.` : "";
-    showToast(`Imported ${result.imported} echoes.${skipped}`, "success");
-  } catch (e) {
-    showToast(`Failed to import echoes: ${e}`, "error");
-  }
+  await importEchoesText(importEchoesAddRawText.value);
 }
 </script>
