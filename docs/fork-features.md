@@ -76,3 +76,14 @@ history is in [CHANGES.md](../CHANGES.md).
   Review…; cancelling there opens the review list). `applyImportedDatabase` replaces all data
   and doesn't ask.
 
+## Settings: delete all echoes, load import file
+
+- "Delete all echoes" (`SettingsDelete.vue`) → `clearAllEchoes()` in `src/utils/settingsBackup.ts`:
+  empties `inventory.echoes`/`equipped`/`echoPresets`/`equippedPresets` (function-form `$patch`,
+  object form would merge) and runs `clearEchoesFromCharacters` (`src/echoes/clearEchoes.ts`),
+  which resets echo slots and `echoPresetId` on each record and each saved build. Test checks no
+  echo/preset id remains anywhere.
+- "Choose JSON file…" next to the Import echoes box (`SettingsBackupRestore.vue`,
+  `SettingsImport.vue`) uses `readJsonFile` (`src/utils/jsonFile.ts`: FileReader, 20 MB cap,
+  JSON check) and fills the box; the full-backup import already had its own file input.
+

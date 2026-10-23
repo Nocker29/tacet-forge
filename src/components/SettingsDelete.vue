@@ -11,6 +11,18 @@
       <button @click="confirmDelete" class="btn btn-error" :class="{ 'btn-sm self-start': variant === 'v3' }">
         Delete
       </button>
+      <div class="divider my-1"></div>
+      <p :class="{ 'text-sm opacity-70': variant === 'v3' }">
+        Delete only your echoes. Characters, weapons, buffs, rotations, teams and settings stay;
+        echo slots in every character build are emptied and echo presets are removed.
+      </p>
+      <button
+        @click="confirmDeleteEchoes"
+        class="btn btn-error btn-outline"
+        :class="{ 'btn-sm self-start': variant === 'v3' }"
+        data-test-delete-all-echoes>
+        Delete all echoes
+      </button>
     </div>
   </div>
 </template>
@@ -18,7 +30,8 @@
 <script setup lang="ts">
 import { useToast } from "../composables/useToast";
 import { useConfirm } from "../composables/useConfirm";
-import { clearAllUserData } from "../utils/settingsBackup";
+import { clearAllEchoes, clearAllUserData } from "../utils/settingsBackup";
+import { useInventoryStore } from "../stores/inventory";
 
 withDefaults(defineProps<{ variant?: "legacy" | "v3" }>(), {
   variant: "legacy",
@@ -26,6 +39,7 @@ withDefaults(defineProps<{ variant?: "legacy" | "v3" }>(), {
 
 const { showToast } = useToast();
 const { confirm } = useConfirm();
+const inventoryStore = useInventoryStore();
 
 /**
  * Confirms the deletion of user data
@@ -41,6 +55,28 @@ async function confirmDelete() {
   clearAllUserData();
   showToast("Your data has been deleted!", "success");
   window.setTimeout(() => location.reload(), 1500);
+}
+
+async function confirmDeleteEchoes() {
+  const echoCount = inventoryStore.echoes?.length ?? 0;
+  const presetCount = inventoryStore.echoPresets?.length ?? 0;
+  const confirmed = await confirm(
+    "Delete every echo in your inventory? This can't be undone — export a backup first (Backup & Restore) if you may want them back.",
+    {
+      title: "Delete all echoes",
+      confirmLabel: "Delete all echoes",
+      variant: "error",
+      items: [
+        `${echoCount} echo${echoCount === 1 ? "" : "es"} will be deleted.`,
+        "Echo slots in all character builds will be cleared.",
+        `${presetCount} echo preset${presetCount === 1 ? "" : "s"} will be removed.`,
+        "Characters, weapons, buffs, rotations, teams and settings stay.",
+      ],
+    },
+  );
+  if (!confirmed) return;
+  clearAllEchoes();
+  showToast(`Deleted ${echoCount} echo${echoCount === 1 ? "" : "es"}. Everything else was kept.`, "success");
 }
 </script>
 

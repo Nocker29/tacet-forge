@@ -17,6 +17,7 @@ import { useTeamRotationsStore } from "../stores/teamRotations";
 import { randomString } from "./strings";
 import { buildIdentityKeySet, getEchoIdentityKey } from "./echoIdentity";
 import { findIncomingDuplicates } from "../echoes/duplicateCleanup";
+import { clearEchoesFromCharacters } from "../echoes/clearEchoes";
 import {
   applyMigrationTransforms,
   CURRENT_DATA_VERSION,
@@ -217,6 +218,25 @@ export async function importEchoesFromRaw(
     amount++;
   }
   return { imported: amount, skipped: parsed.length - amount };
+}
+
+/**
+ * Danger Zone → "Delete all echoes": empties the echo inventory, the equipped
+ * map and echo presets, and clears echo slots in every character and saved
+ * build. Characters, weapons, buffs, rotations, teams, settings and the
+ * protected-characters list stay.
+ */
+export function clearAllEchoes() {
+  const characterStore = useCharacterStore();
+  const inventoryStore = useInventoryStore();
+  characterStore.characters = clearEchoesFromCharacters(characterStore.characters) as never;
+  // Function form: object-form $patch would merge `{}` into the old maps.
+  inventoryStore.$patch((state: Record<string, unknown>) => {
+    state.echoes = [];
+    state.equipped = {};
+    state.echoPresets = [];
+    state.equippedPresets = {};
+  });
 }
 
 /**
