@@ -388,13 +388,28 @@
             <span><b>{{ actionsCount }}</b> action{{ actionsCount === 1 ? "" : "s" }}</span>
             <span class="opacity-40">·</span>
             <span><b>{{ totalHits }}</b> hit{{ totalHits === 1 ? "" : "s" }}</span>
-            <span class="opacity-40">·</span>
-            <span><b>{{ durationValue !== null && durationValue !== "" ? `${durationValue}s` : "—" }}</b> duration</span>
+            <!-- With frame data, the timing panel below shows both lengths. -->
+            <template v-if="!hasFrameData">
+              <span class="opacity-40">·</span>
+              <span><b>{{ durationValue !== null && durationValue !== "" ? `${durationValue}s` : "—" }}</b> duration</span>
+            </template>
             <span class="opacity-40">·</span>
             <span><b>{{ customizedActionsCount }}</b> customized</span>
           </div>
+          <RotationFrameTiming
+            class="mt-4"
+            :timing="rotationTiming"
+            :has-frame-data="hasFrameData"
+            :damage="rotationAvgDamage"
+            :typed-duration="durationValue" />
+          <!-- With frame data the charts run on game time (ADR 0049). -->
+          <RotationTimelineChart
+            v-if="isLiveResultBarEnabled && timelineStrip"
+            class="mt-4"
+            :strip="timelineStrip"
+            @select="scrollToAction" />
           <div
-            v-if="isLiveResultBarEnabled && damageStripBars.length"
+            v-else-if="isLiveResultBarEnabled && damageStripBars.length"
             class="rotation__damage-strip mt-4"
             data-test-rotation-damage-strip>
             <div class="text-xs opacity-60 mb-2">
@@ -447,6 +462,9 @@
                 :can-reorder="canReorderActions"
                 :damage-value="actionDamageById[action.id] ?? null"
                 damage-label="Avg"
+                :has-frame-data="hasFrameData"
+                :attack-frames="framesFor(action)"
+                :frame-timing="actionTimingById[action.id] ?? null"
                 @action-update="handleActionUpdate"
                 @action-update:sequence="handleSequenceUpdate"
                 @remove-action="handleRemoveAction"
@@ -502,6 +520,10 @@ import { storeToRefs } from "pinia";
 import { randomString } from "../utils/strings";
 import CalculatorRotationActionEditor from "./CalculatorRotationActionEditor.vue";
 import CalculatorRotationQuickAdd from "./CalculatorRotationQuickAdd.vue";
+import RotationFrameTiming from "./RotationFrameTiming.vue";
+import RotationTimelineChart from "./RotationTimelineChart.vue";
+import { buildTimelineStrip, type TimelineStrip } from "../calculator/rotationTimelineStrip";
+import { useRotationTiming } from "../composables/useRotationTiming";
 import AppOverflowMenu from "./AppOverflowMenu.vue";
 import FavoriteHeartButton from "./FavoriteHeartButton.vue";
 import { useCharacterActionList } from "../composables/useCharacterActionList";
@@ -531,6 +553,7 @@ import {
 import { applyBulkActionBuff } from "../calculator/rotationActionBuffs";
 import type { AdvancedBuffOverride, DurationRangeAction } from "./TeamRotationAdvancedBuffRow.vue";
 import type { CharacterCalculationContext } from "../calculator/buildCharacterContext";
+import type { FrameDataFile } from "../calculator/frameData";
 import { buildRotationExportPayload, generateRotationExportFilename } from "../characters/rotationExportImport";
 import { trackEvent } from "../utils/analytics";
 
@@ -705,6 +728,8 @@ const customizedActionsCount = computed(
 // timing in the data model to plot honestly.
 type RotationDamageAttack = {
   id: string;
+  label?: string;
+  type?: string;
   damage?: {
     totalDamage?: number;
     avgDamage?: number;
@@ -798,6 +823,46 @@ const actionsSorted = computed(() =>
     (a, b) => Number(a.order ?? 0) - Number(b.order ?? 0),
   ),
 );
+
+// Frame-data length and DPS (ADR 0047), shown beside the typed duration.
+const {
+  hasFrameData,
+  timing: rotationTiming,
+  byActionId: actionTimingById,
+  framesFor,
+} = useRotationTiming(
+  actionsSorted,
+  computed(() => props.characterData as { frames?: FrameDataFile } | undefined),
+  echoValue,
+);
+
+const timelineStrip = computed<TimelineStrip | null>(() => {
+  if (!hasFrameData.value) return null;
+  const strip = buildTimelineStrip(
+    rotationTiming.value,
+    rotationDamageAttacks.value.map((attack) => {
+      const action = actionsSorted.value.find((entry) => entry.id === attack.id);
+      return {
+        id: attack.id,
+        value: actionDamageById.value[attack.id] ?? 0,
+        label: attack.label,
+        // The ability the action comes from (intro, outro, forteCircuit, …),
+        // not the damage type: an Outro can deal Basic Attack DMG.
+        type: action?.type as string | undefined,
+        isDamage: attack.type !== "Healing" && attack.type !== "Shield",
+        end: action?.end,
+      };
+    }),
+  );
+  return strip.blocks.length ? strip : null;
+});
+
+const rotationAvgDamage = computed<number | null>(() => {
+  const rotations = (
+    props.allDamages as { rotations?: Array<{ id: string; damageAggregation?: { avgDamage?: number } }> } | null
+  )?.rotations;
+  return rotations?.find((r) => r.id === props.id)?.damageAggregation?.avgDamage ?? null;
+});
 
 const rangeActions = computed<DurationRangeAction[]>(() =>
   actionsSorted.value.map((action) => ({

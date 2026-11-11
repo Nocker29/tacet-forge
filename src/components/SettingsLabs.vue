@@ -2,7 +2,7 @@
   <template v-if="variant === 'v3'">
     <p class="text-sm opacity-60 mb-4 max-w-xl">
       Features that are still in progress. Turn any of these on to try them
-      early — expect rough edges, and report what you find on GitHub.
+      early — expect rough edges, and drop what you find in the Discord.
     </p>
     <div class="flex flex-col gap-3">
       <SettingsLab
@@ -12,9 +12,15 @@
         :label="lab.label"
         :details="lab.details"
         variant="v3"></SettingsLab>
-      <div class="bg-base-200/50 rounded-xl p-4 border border-dashed border-base-300">
+      <div
+        class="bg-base-200/50 rounded-xl p-4 border border-dashed border-base-300"
+        data-test-settings-labs-empty>
         <p class="text-xs opacity-40 text-center">
-          More experiments will land here as they're ready.
+          {{
+            labsFeatures.length
+              ? "More experiments will land here as they're ready."
+              : "No experiments running right now. New ones will land here as they're ready."
+          }}
         </p>
       </div>
     </div>
@@ -26,7 +32,7 @@
       Enable any of these features if you want to test them out. Know that they
       are a in progress and may have bugs or issues.
       <br />
-      If you find anything, report it on GitHub.
+      If you find anything, communicate them in the Discord.
     </p>
     <template v-if="!labsFeatures.length">
       <div role="alert" class="alert shadow-lg mt-4">
@@ -62,7 +68,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import SettingsLab from "./SettingsLab.vue";
-import { SCANNER_ENABLED } from "../utils/forkFeatures";
+import { TEAM_OPTIMIZER_LAB } from "../utils/labs";
 
 withDefaults(defineProps<{ variant?: "legacy" | "v3" }>(), {
   variant: "legacy",
@@ -70,13 +76,15 @@ withDefaults(defineProps<{ variant?: "legacy" | "v3" }>(), {
 
 type LabFeature = { key: string; label: string; details: string };
 
+// Echo scanning graduated on 2026-10-27 and frame timing on 2026-11-06; any
+// stored `labs.echoScanning` or `labs.frameTiming` is simply ignored now.
 const labsFeatures = ref<LabFeature[]>([
-  ...(SCANNER_ENABLED ? [{
-    key: "echoScanning",
-    label: "Echo scanning",
+  {
+    key: TEAM_OPTIMIZER_LAB,
+    label: "Team optimizer",
     details:
-      "Adds a \"Scan echoes\" button to your inventory. Share your game window (or upload a recording) while browsing your in-game Echo list and it reads each echo's stats automatically — everything runs in your browser, nothing is uploaded anywhere. Still being tuned for accuracy.",
-  }] : []),
+      "Adds an Optimize team button to Team Rotations. It finds the best builds for all of a team's characters at once, for that team's rotation, without using an echo twice. Results save as new builds, so your current ones stay untouched.",
+  },
 ]);
 </script>
 

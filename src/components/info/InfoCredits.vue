@@ -1,51 +1,61 @@
 <template>
-  <div class="bg-base-200 rounded-xl p-4 flex flex-col gap-4">
-    <div data-test-fork-notice>
-      <div class="text-[.65rem] font-bold uppercase tracking-wider opacity-50 mb-2">
-        About this version
-      </div>
-      <p class="text-sm opacity-80">
-        {{ APP_NAME }} is based on
-        <a :href="UPSTREAM_REPO_URL" target="_blank" rel="noopener" class="link font-semibold">
-          {{ UPSTREAM_NAME }}</a>
-        by @LavaSnake and contributors. This is a modified version, licensed under the
-        GNU GPL v3 like the original; see CHANGES.md in the source for what changed.
-      </p>
-      <p class="text-sm opacity-80 mt-2">
-        Source code and bug reports:
-        <a :href="FORK_REPO_URL" target="_blank" rel="noopener" class="link font-semibold">
-          {{ APP_NAME }} on GitHub</a>.
-      </p>
-    </div>
+  <div class="flex flex-col gap-8" data-test-info-credits>
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-base-content">Built with the community</h1>
 
-    <div>
-      <div class="text-[.65rem] font-bold uppercase tracking-wider opacity-50 mb-2">
-        Original developers
+    <section class="grid gap-4 md:grid-cols-2">
+      <div class="flex flex-col items-start gap-2.5 bg-base-200 rounded-2xl p-5 sm:p-6" data-test-fork-notice>
+        <h2 class="text-2xl font-bold">About this version</h2>
+        <p class="leading-relaxed">
+          {{ APP_NAME }} is based on
+          <a :href="UPSTREAM_REPO_URL" target="_blank" rel="noopener noreferrer" class="link font-semibold">
+            {{ UPSTREAM_NAME }}</a>
+          by @LavaSnake and contributors. This is a modified version, licensed under the GNU GPL v3
+          like the original; see CHANGES.md in the source for what changed.
+        </p>
       </div>
-      <ul class="text-sm opacity-80 flex flex-col gap-1">
-        <li>Author: @LavaSnake</li>
-        <li>Contributors: @flysand</li>
-      </ul>
-    </div>
+      <div class="flex flex-col items-start gap-2.5 bg-base-200 rounded-2xl p-5 sm:p-6">
+        <h2 class="text-2xl font-bold">Browse the source</h2>
+        <p class="leading-relaxed">Read the code or report a bug on GitHub.</p>
+        <a :href="FORK_REPO_URL" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+          {{ APP_NAME }} on GitHub
+        </a>
+      </div>
+    </section>
 
-    <div>
-      <div class="text-[.65rem] font-bold uppercase tracking-wider opacity-50 mb-2">
-        Shoutouts
-      </div>
-      <ul class="text-sm opacity-80 flex flex-col gap-1">
-        <li>
-          Jäger, Bachelor, Nekuro (NekroLight), AlecJohn, juste — for all of
-          your help with the calculations and great ideas!
+    <section class="flex flex-col gap-3">
+      <h2 class="text-2xl font-bold">Original developers</h2>
+      <ul class="flex flex-wrap gap-2.5 list-none m-0 p-0">
+        <li v-for="person in DEVELOPERS" :key="person.name" class="credit-person">
+          <span class="credit-person__avatar" aria-hidden="true">{{ person.name[1].toUpperCase() }}</span>
+          {{ person.name }}, {{ person.role }}
         </li>
-        <li>Namelag, and Dustin for all of your help with the Spectro Frazzle formula!</li>
-        <li>noyaosu for your help in data gathering for Aero Erosion!</li>
-        <li>F.I.S.H. and invidia.exe for your help in figuring out Tune Break!</li>
       </ul>
-    </div>
+    </section>
 
-    <div class="pt-1 border-t border-base-300">
-      <RouterLink to="/privacy" class="link text-sm">Privacy Policy →</RouterLink>
-    </div>
+    <section class="flex flex-col gap-3">
+      <h2 class="text-2xl font-bold">The numbers are right because of them</h2>
+      <div class="grid gap-4 md:grid-cols-2">
+        <div v-for="group in THANKS" :key="group.title" class="flex flex-col gap-3 bg-base-200 rounded-2xl p-4 sm:p-5">
+          <h3 class="text-lg font-bold">{{ group.title }}</h3>
+          <ul class="flex flex-wrap gap-2.5 list-none m-0 p-0">
+            <li v-for="name in group.people" :key="name" class="credit-person bg-base-100">
+              <span class="credit-person__avatar" aria-hidden="true">{{ name[0].toUpperCase() }}</span>
+              {{ name }}
+            </li>
+            <li v-if="group.link" class="credit-person bg-base-100" data-test-credits-wuwalab>
+              <span class="credit-person__avatar" aria-hidden="true">{{ group.link.name[0].toUpperCase() }}</span>
+              <a :href="group.link.href" target="_blank" rel="noopener noreferrer" class="link font-semibold">
+                {{ group.link.name }}
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <p>
+      <RouterLink to="/privacy" class="link link-primary">Privacy Policy</RouterLink>
+    </p>
   </div>
 </template>
 
@@ -57,4 +67,43 @@ useDocumentTitle(
   "Credits & Community — Tacet Forge",
   "Developers, contributors, and community links for Tacet Forge.",
 );
+
+const DEVELOPERS = [
+  { name: "@LavaSnake", role: "author" },
+  { name: "@flysand", role: "contributor" },
+];
+
+const THANKS: { title: string; people: string[]; link?: { name: string; href: string } }[] = [
+  { title: "Calculations and great ideas", people: ["Jäger", "Bachelor", "Nekuro (NekroLight)", "AlecJohn", "juste"] },
+  { title: "Spectro Frazzle formula", people: ["Namelag", "Dustin"] },
+  { title: "Tune Break", people: ["F.I.S.H.", "invidia.exe"] },
+  { title: "Aero Erosion data", people: ["noyaosu"] },
+  {
+    title: "Action frame data for rotation timing",
+    people: [],
+    link: { name: "wuwalab", href: "https://wuwalab.com" },
+  },
+];
 </script>
+
+<style scoped>
+.credit-person {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.375rem 0.875rem 0.375rem 0.375rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  color: oklch(var(--bc));
+}
+.credit-person__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  background: oklch(var(--p) / 0.2);
+  font-weight: 700;
+}
+</style>

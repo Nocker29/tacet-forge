@@ -166,23 +166,51 @@
           @browse-inventory="handleOpenEchoesBrowser(0)"
           @open-saved-presets="handleOpenEchoesPreset({ tab: 'mine', source: 'empty-state' })"
           @open-community-builds="handleOpenEchoesPreset({ tab: 'community', source: 'empty-state' })" />
+        <!--
+          Drag a collapsed tile onto another to swap the two slots. The
+          wrapper carries the drag handlers because CalculatorEchoTile is a
+          fragment (see .echo__list below). An expanded tile isn't draggable,
+          so dragging can't start from its inputs.
+        -->
         <div class="echo__list">
-          <CalculatorEchoTile
+          <div
             v-for="(_, index) in 5"
             :key="character + '-' + index"
-            :ref="getEchoRefSetter(index)"
-            :index="index"
-            :character="character"
-            :is-expanded="expandedEchoIndex === index"
-            @updated-echo-cost="handleUpdatedEchoCost"
-            @update-stats="handleEchoStats"
-            @echo:set-chosen="handleEchoSetChosen"
-            @main-echo:updated="handleMainEchoUpdated"
-            @main-echo-rank:updated="handleMainEchoRankUpdated"
-            @open-echoes-browser="handleOpenEchoesBrowser"
-            @on-echo-removed="handleEchoRemoved"
-            @toggle-edit="handleToggleEdit"
-            @open-weights-editor="handleOpenWeightsEditor"></CalculatorEchoTile>
+            class="echo__slot relative rounded-box transition"
+            :class="{
+              'opacity-40': echoDragIndex === index,
+              'echo__slot--drop-target ring-2 ring-primary ring-offset-2 ring-offset-base-100':
+                echoDropIndex === index && echoDragIndex !== null && echoDragIndex !== index,
+            }"
+            :draggable="expandedEchoIndex !== index"
+            :data-test-echo-slot="index"
+            @dragstart="handleEchoDragStart(index, $event)"
+            @dragend="onEchoDragEnd"
+            @dragover.prevent="onEchoDragOver(index, $event)"
+            @dragenter.prevent="onEchoDragEnter(index)"
+            @drop.prevent="onEchoDrop(index)">
+            <span
+              v-if="echoDropIndex === index && echoDragIndex !== null && echoDragIndex !== index"
+              class="badge badge-primary badge-sm absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+              data-test-echo-slot-drop-hint>
+              Swap with slot {{ echoDragIndex + 1 }}
+            </span>
+            <CalculatorEchoTile
+              :ref="getEchoRefSetter(index)"
+              :index="index"
+              :character="character"
+              :is-expanded="expandedEchoIndex === index"
+              @updated-echo-cost="handleUpdatedEchoCost"
+              @update-stats="handleEchoStats"
+              @echo:set-chosen="handleEchoSetChosen"
+              @main-echo:updated="handleMainEchoUpdated"
+              @main-echo-rank:updated="handleMainEchoRankUpdated"
+              @open-echoes-browser="handleOpenEchoesBrowser"
+              @on-echo-removed="handleEchoRemoved"
+              @toggle-edit="handleToggleEdit"
+              @swap="handleSwapEchoes"
+              @open-weights-editor="handleOpenWeightsEditor"></CalculatorEchoTile>
+          </div>
         </div>
 
         <CalculatorEchoSetBonusPanel
@@ -309,12 +337,14 @@ import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
 import { useSettingsStore } from "../stores/settings";
 import { isV3UiEnabled } from "../utils/uiVersion";
+import { useGuideDrawer } from "../composables/useGuideDrawer";
 import { getRatingBadgeClasses } from "../composables/useEchoRating";
 import { useTeamSubstatScoreRollup } from "../composables/useTeamSubstatScoreRollup";
 import { randomString } from "../utils/strings.ts";
 import { useCommunityEchoPresets, type EchoPresetsOpenOptions } from "../composables/useCommunityEchoPresets";
 import { useEchoPresetStatus } from "../composables/useEchoPresetStatus";
 import { trackEvent } from "../utils/analytics";
+import { useDragReorder } from "../composables/useDragReorder";
 
 const MAX_ECHO_COST = 12;
 
@@ -337,10 +367,40 @@ function handleToggleEdit(index: number) {
   expandedEchoIndex.value = expandedEchoIndex.value === index ? null : index;
 }
 
+// Swapping two slots (drag-and-drop, or the tile's grip with the arrow
+// keys). The open editor follows its echo to the new slot.
+function handleSwapEchoes(fromIndex: number, toIndex: number) {
+  if (toIndex < 0 || toIndex > 4 || fromIndex === toIndex) return;
+  characterStore.swapCharacterEchoes(props.character, fromIndex, toIndex);
+  if (expandedEchoIndex.value === fromIndex) expandedEchoIndex.value = toIndex;
+  else if (expandedEchoIndex.value === toIndex) expandedEchoIndex.value = fromIndex;
+  trackEvent("echo-slots-swapped", { from: fromIndex, to: toIndex });
+}
+
+const {
+  dragIndex: echoDragIndex,
+  dropIndex: echoDropIndex,
+  onDragStart: onEchoDragStart,
+  onDragEnter: onEchoDragEnter,
+  onDragOver: onEchoDragOver,
+  onDrop: onEchoDrop,
+  onDragEnd: onEchoDragEnd,
+} = useDragReorder(handleSwapEchoes);
+
+function handleEchoDragStart(index: number, event: DragEvent) {
+  // Must set dataTransfer during dragstart on the draggable node (esp. Safari/Firefox)
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(index));
+  }
+  onEchoDragStart(index);
+}
+
 const characterStore = useCharacterStore() as any;
 const inventoryStore = useInventoryStore() as any;
 const settingsStore = useSettingsStore() as any;
 
+const { openGuide } = useGuideDrawer();
 const isLiveResultBarEnabled = computed(
   () => isV3UiEnabled(settingsStore),
 );
@@ -539,10 +599,12 @@ function handleOpenEchoesPreset(options?: EchoPresetsOpenOptions) {
   echoesPresets.value?.triggerOpenModal?.(options);
 }
 function handleOpenPresetsGuide() {
-  echoesPresetsGuide.value?.triggerOpenModal?.();
+  if (isLiveResultBarEnabled.value) openGuide("echo-presets", "echoes");
+  else echoesPresetsGuide.value?.triggerOpenModal?.();
 }
 function handleOpenRatingGuide() {
-  echoRatingGuide.value?.triggerOpenModal?.();
+  if (isLiveResultBarEnabled.value) openGuide("echo-ratings", "echoes");
+  else echoRatingGuide.value?.triggerOpenModal?.();
 }
 function handleOpenWeightsEditor() {
   echoRatingWeightsEditor.value?.triggerOpenModal?.({

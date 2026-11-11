@@ -5,7 +5,12 @@
       'calculations--full-width': curScreen === 'build-card',
       'calculations--live-bar': isLiveResultBarEnabled,
     }">
-    <Nav cur-page="home">
+    <Nav
+      cur-page="home"
+      :sections="isLiveResultBarEnabled ? calculatorSections : null"
+      :active-section="curScreen"
+      @home="changeScreen('character')"
+      @select-section="changeScreen">
       <template #mobile>
         <CalculatorMobileSubNav
           @change-screen="changeScreen"
@@ -31,6 +36,7 @@
       v-model:damage-type="liveResultBarDamageType"
       :stat-keys="liveResultBarStatKeys"
       :stats="liveResultBarStatValues"
+      :build-stats="liveResultBarBuildStatValues"
       :all-damages="allDamages.value"
       :is-detail-open="isLiveResultDetailOpen"
       :is-loading="isLoading"
@@ -55,7 +61,7 @@
     <div
       class="calculations__body"
       :class="{ 'calculations__body--legacy': !isLiveResultBarEnabled }">
-    <div class="calculations__screens">
+    <div ref="screensRef" class="calculations__screens">
       <div class="screen--character" v-show="curScreen === 'character'">
         <div v-if="false" class="alert alert-success mb-6">
           Version 3.6 content is now available
@@ -370,6 +376,7 @@
       :is-pinned="isLiveResultDetailPinned"
       :target="liveResultBarTarget"
       :default-pinned-stats="liveResultBarStatKeys"
+      :build-stats="buildStatValues"
       @stat-selected="handleStatSelected"
       @selected-attack="handleSelectedAttack"
       @toggle-pin="
@@ -463,6 +470,7 @@
       :char-resonance-chains-data="charResonanceChainsData"
       :echo-stats="echoStats"
       :echo-set-additional-base-buffs-data="echoSetAdditionalBaseBuffsData"
+      :stat-split="selectedStatSplit"
       :attack-key="selectedAttackKey"
       :damage="selectedAttackDamage"
       :attack-label="selectedAttackLabel"
@@ -547,12 +555,12 @@ import {
 } from "../calculator/attacks";
 import { buildOptimizerRotationData } from "../calculator/rotationData";
 import { calcCharacterRotationDamage } from "../calculator/characterRotation";
+import { characterRotationTiming, rotationLength } from "../calculator/rotationTiming";
+import { echoFrames } from "../echoes/frames";
 import type { OptimizerContext } from "../calculator/optimizer";
 import {
-  getOptimizerLoadoutHash,
   filterEchoesForOptimizer,
   resolveOptimizerEmptyReason,
-  splitOptimizerWorkerCount,
   type OptimizerEmptyReason,
 } from "../calculator/optimizer";
 import { getSetsFromEchoes, getSetBonusEffects } from "../echoes/sets";
@@ -561,6 +569,12 @@ import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
 import { useSettingsStore } from "../stores/settings";
 import { isV3UiEnabled } from "../utils/uiVersion";
+import { computeBuildOnlyStats } from "../calculator/buildOnlyStats";
+import {
+  liveStatValueFor,
+  resolveStatSelection,
+  splitStat,
+} from "../calculator/statSplit";
 import { resolveOptimizerWorkerCount } from "../utils/optimizerPreferences";
 import { trackEvent } from "../utils/analytics";
 import { useRoute, useRouter } from "vue-router";
@@ -569,6 +583,7 @@ import { filterEchoesBySets } from "../echoes/optimizerProtection";
 import Nav from "./navigation/Nav.vue";
 import CalculatorMobileSubNav from "./navigation/CalculatorMobileSubNav.vue";
 import CalculatorSubNav from "./navigation/CalculatorSubNav.vue";
+import { CALCULATOR_SECTIONS, getCalculatorSectionFromQuery } from "./navigation/navSections";
 import CalculatorBreakdown from "./CalculatorBreakdown.vue";
 import CalculatorCommandBar from "./CalculatorCommandBar.vue";
 import WorkspaceCharacterBrowser from "./characterWorkspace/WorkspaceCharacterBrowser.vue";
@@ -579,8 +594,8 @@ import {
   resolveLiveResultBarTarget,
   DEFAULT_LIVE_RESULT_BAR_STATS,
 } from "../calculator/liveResultBar";
-import { randomString } from "../utils/strings";
-// Note: Workers are imported dynamically via new Worker() calls
+// Note: Workers are spawned by src/workers/optimizerRun.ts
+import { runOptimizerWorkers } from "../workers/optimizerRun";
 import { displayPercentage, displayInt } from "../utils/numbers";
 
 export default defineComponent({
@@ -640,6 +655,9 @@ export default defineComponent({
     const weaponAtk = ref(0);
     const charBuffsData = reactive({});
     const echoSetAdditionalBaseBuffsData = ref({});
+    // Self buffs as the stat pipeline actually summed them — charBuffsData is
+    // the UI breakdown copy. Only read by the V3 build-vs-live split.
+    const appliedCharBuffsData = ref({});
     const teamBuffsData = reactive({});
     const charResonanceChainsData = reactive({});
     const charactersList = ref([]);
@@ -687,16 +705,8 @@ export default defineComponent({
     const customBuffs = reactive({});
     const characterLevel = ref("90");
     const weaponType = ref("");
-    const route = useRoute();
-    const router = useRouter();
-    const curScreen = ref(resolveInitialCalculatorScreen(route?.query?.screen));
-    // One-shot (Characters page → "Open in optimizer"): drop ?screen= so a
-    // later reload opens wherever the user navigated to, not the link's screen.
-    if (route?.query?.screen !== undefined) {
-      const query = { ...route.query };
-      delete query.screen;
-      void router?.replace({ query });
-    }
+    // Tacet Forge: the Characters page links here with ?screen=optimizer.
+    const curScreen = ref(resolveInitialCalculatorScreen(useRoute()?.query?.screen));
     const mainEcho = ref("");
     const mainEchoRank = ref(5);
     const selectedStat = ref(null);
@@ -773,6 +783,7 @@ export default defineComponent({
       totalCritDMG: totalCritDMG.value,
       energyRegen: energyRegen.value,
     }));
+
 
     const character = ref("");
     const totalAtk = ref(0);
@@ -1081,16 +1092,17 @@ export default defineComponent({
         // other's in-flight mutation of that shared object.
         const rotationResults = [];
         for (const rotation of rotationsList.value) {
-          rotationResults.push(
-            await calcCharacterRotationDamage(
-              rotation,
-              { chosenChar: chosenChar.value, characterLevel: characterLevel.value, context },
-              character.value,
-              characters.value,
-              enemyConfig,
-              inventoryStore.echoes,
-            ),
+          const result = await calcCharacterRotationDamage(
+            rotation,
+            { chosenChar: chosenChar.value, characterLevel: characterLevel.value, context },
+            character.value,
+            characters.value,
+            enemyConfig,
+            inventoryStore.echoes,
           );
+          // Frame-data length (ADR 0048) for the results views' DPS.
+          const timing = characterRotationTiming(rotation.actions, chosenChar.value, echoFrames, rotation.mainEcho);
+          rotationResults.push({ ...result, frameLength: timing ? rotationLength(timing) : null });
           // A newer call landed while this one was still awaiting a
           // per-action rebuilt context — stop and let it own the result
           // instead of finishing this stale computation.
@@ -1266,6 +1278,7 @@ export default defineComponent({
       });
       echoSetAdditionalBaseBuffsData.value =
         result.echoSetAdditionalBaseBuffsData ?? {};
+      appliedCharBuffsData.value = result.appliedSelfBuffsData ?? {};
       return result;
     };
 
@@ -1325,12 +1338,39 @@ export default defineComponent({
       calcAllDamages();
     };
 
+    // The screens scroll inside their own panel on desktop and with the page
+    // on phones; a new section starts at the top of both.
+    const screensRef = ref(null);
     const changeScreen = (screen: string) => {
+      const isNewScreen = screen !== curScreen.value;
       curScreen.value = screen;
       if (screen === "build-card") {
         hasVisitedBuildCard.value = true;
       }
+      if (isNewScreen) {
+        nextTick(() => {
+          screensRef.value?.scrollTo({ top: 0 });
+          window.scrollTo({ top: 0 });
+        });
+      }
     };
+
+    // Guides and the Info overview link to a screen with ?section=; the query is dropped
+    // so it can't go stale once you move to another screen.
+    const route = useRoute();
+    const router = useRouter();
+    // One-shot (Characters page → "Open in optimizer"): drop ?screen= so a
+    // later reload opens wherever the user navigated to, not the link's screen.
+    if (route?.query?.screen !== undefined) {
+      const query = { ...route.query };
+      delete query.screen;
+      void router?.replace({ query });
+    }
+    const linkedSection = getCalculatorSectionFromQuery(route?.query.section);
+    if (linkedSection) {
+      changeScreen(linkedSection);
+      void router?.replace({ query: { ...route.query, section: undefined } });
+    }
 
     const handleCharacterTalentUpdated = (data) => {
       talentData[data.type] = data.value;
@@ -1622,7 +1662,6 @@ export default defineComponent({
       optimizeWithWorkers(
         filteredEchoes,
         optimizerContext,
-        Array.from(allowedSets),
         topN,
         mainEchoes,
         minStats,
@@ -1636,140 +1675,11 @@ export default defineComponent({
       );
     };
 
-    // Helper function to serialize echoes array (only include needed properties)
-    const serializeEchoes = (echoes: any[]): any[] => {
-      if (!Array.isArray(echoes)) {
-        return [];
-      }
-      return echoes
-        .filter((echo) => echo && typeof echo === "object")
-        .map((echo) => {
-          // Only include the properties we actually need for optimization
-          // Use null/undefined checks to ensure we don't pass non-serializable values
-          return {
-            echoId: echo.echoId ?? null,
-            echo: echo.echo ?? null,
-            echoSet: echo.echoSet ?? null,
-            echoSubStatsType1: echo.echoSubStatsType1 ?? null,
-            echoSubStatsType2: echo.echoSubStatsType2 ?? null,
-            echoSubStatsType3: echo.echoSubStatsType3 ?? null,
-            echoSubStatsType4: echo.echoSubStatsType4 ?? null,
-            echoSubStatsType5: echo.echoSubStatsType5 ?? null,
-            echoSubStatsValue1:
-              typeof echo.echoSubStatsValue1 === "number"
-                ? echo.echoSubStatsValue1
-                : null,
-            echoSubStatsValue2:
-              typeof echo.echoSubStatsValue2 === "number"
-                ? echo.echoSubStatsValue2
-                : null,
-            echoSubStatsValue3:
-              typeof echo.echoSubStatsValue3 === "number"
-                ? echo.echoSubStatsValue3
-                : null,
-            echoSubStatsValue4:
-              typeof echo.echoSubStatsValue4 === "number"
-                ? echo.echoSubStatsValue4
-                : null,
-            echoSubStatsValue5:
-              typeof echo.echoSubStatsValue5 === "number"
-                ? echo.echoSubStatsValue5
-                : null,
-            rank:
-              echo.rank != null && echo.rank !== ""
-                ? (() => {
-                    const n = Number(echo.rank);
-                    return Number.isFinite(n) ? n : null;
-                  })()
-                : null,
-            stat: echo.stat ?? null,
-            type:
-              echo.type != null && echo.type !== ""
-                ? (() => {
-                    const n = Number(echo.type);
-                    return Number.isFinite(n) ? n : null;
-                  })()
-                : null,
-          };
-        });
-    };
-
-    // Helper function to create a serializable context (removes functions and ensures all data is plain)
-    const createSerializableContext = (context: any): any => {
-      try {
-        // Deep clone using JSON to ensure everything is serializable
-        // This will remove functions, Vue reactive proxies, circular references, etc.
-        const serializable = JSON.parse(
-          JSON.stringify(context, (key, value) => {
-            // Skip functions
-            if (typeof value === "function") {
-              return undefined;
-            }
-            // Ensure we're not passing Vue reactive proxies or other non-serializable objects
-            return value;
-          }),
-        );
-        return serializable;
-      } catch (error) {
-        console.error("Error serializing context:", error);
-        // Fallback: manually create a plain object
-        return {
-          chosenChar: JSON.parse(JSON.stringify(context.chosenChar)),
-          character: context.character,
-          characterLevel: context.characterLevel,
-          talentData: { ...context.talentData },
-          baseHp: context.baseHp,
-          baseAtk: context.baseAtk,
-          baseDef: context.baseDef,
-          weaponData: JSON.parse(JSON.stringify(context.weaponData)),
-          charBuffsData: JSON.parse(JSON.stringify(context.charBuffsData)),
-          charResonanceChainsData: JSON.parse(
-            JSON.stringify(context.charResonanceChainsData),
-          ),
-          teamBuffsData: JSON.parse(JSON.stringify(context.teamBuffsData)),
-          customBuffs: JSON.parse(JSON.stringify(context.customBuffs)),
-          echoStats: JSON.parse(JSON.stringify(context.echoStats)),
-          enemyLevel: context.enemyLevel,
-          enemyResist: context.enemyResist,
-          enemyType: context.enemyType,
-          strainStacks: context.strainStacks,
-          isSpectroFrazzleEnabled: context.isSpectroFrazzleEnabled,
-          spectroFrazzleStacks: context.spectroFrazzleStacks,
-          isAeroErosionEnabled: context.isAeroErosionEnabled,
-          aeroErosionStacks: context.aeroErosionStacks,
-          havocBaneStacks: context.havocBaneStacks,
-          isFusionBurstEnabled: context.isFusionBurstEnabled,
-          fusionBurstStacks: context.fusionBurstStacks,
-          isElectroFlareEnabled: context.isElectroFlareEnabled,
-          electroFlareStacks: context.electroFlareStacks,
-          electroRageStacks: context.electroRageStacks,
-          isGlacioChafeEnabled: context.isGlacioChafeEnabled,
-          glacioChafeStacks: context.glacioChafeStacks,
-          mainEcho: context.mainEcho,
-          mainEchoRank: context.mainEchoRank,
-          rotationsList: JSON.parse(JSON.stringify(context.rotationsList)),
-          Glacio: context.Glacio,
-          Fusion: context.Fusion,
-          Electro: context.Electro,
-          Aero: context.Aero,
-          Spectro: context.Spectro,
-          Havoc: context.Havoc,
-          characters: JSON.parse(JSON.stringify(context.characters)),
-          activeCharacterBuffs: JSON.parse(
-            JSON.stringify(context.activeCharacterBuffs),
-          ),
-          activeCharacterResonanceChains: JSON.parse(
-            JSON.stringify(context.activeCharacterResonanceChains),
-          ),
-        };
-      }
-    };
-
-    // Web worker-based optimization
-    const optimizeWithWorkers = async (
+    // Web worker-based optimization (the workers themselves are driven by
+    // src/workers/optimizerRun.ts; this maps its progress onto this page's refs).
+    const optimizeWithWorkers = (
       echoes: any[],
       context: any,
-      allowedSets: string[],
       topN: number,
       mainEchoKeys: string[],
       minStats: any[],
@@ -1785,473 +1695,81 @@ export default defineComponent({
         unprotectedCount?: number;
       } = { inventoryCount: 0, setFilteredCount: 0 },
     ) => {
-      // Worker count is user-configurable (Settings → Preferences), split between
-      // generator shards (a few, at most) and processor workers (the bulk).
-      const totalWorkerCount = resolveOptimizerWorkerCount(
-        (settingsStore.config as { optimizerWorkerCount?: unknown })
-          ?.optimizerWorkerCount,
-      );
-      const { generatorCount, processorCount } =
-        splitOptimizerWorkerCount(totalWorkerCount);
-      const batchSize =
-        navigator.hardwareConcurrency && navigator.hardwareConcurrency >= 8
-          ? 5000
-          : 2000; // Larger batches on powerful devices
-      // Cap queued batches so generation cannot outrun processing into multi-GB heap
-      const maxQueuedBatches = processorCount * 2;
-
-      // Create workers
-      const generatorWorkers: Worker[] = [];
-      for (let i = 0; i < generatorCount; i++) {
-        generatorWorkers.push(
-          new Worker(
-            new URL("../workers/generator.worker.ts", import.meta.url),
-            { type: "module" },
+      const run = runOptimizerWorkers(
+        {
+          echoes,
+          context,
+          topN,
+          mainEchoKeys,
+          minStats,
+          echoSetPassiveBuffs,
+          mainEchoStats,
+          target,
+          damageType,
+          rotationData,
+          loadoutFormat,
+          // Worker count is user-configurable (Settings → Preferences).
+          workerCount: resolveOptimizerWorkerCount(
+            (settingsStore.config as { optimizerWorkerCount?: unknown })
+              ?.optimizerWorkerCount,
           ),
-        );
-      }
-
-      const processorWorkers: Worker[] = [];
-      for (let i = 0; i < processorCount; i++) {
-        const worker = new Worker(
-          new URL("../workers/processor.worker.ts", import.meta.url),
-          { type: "module" },
-        );
-        processorWorkers.push(worker);
-      }
-
-      // State management
-      const heap: any[] = [];
-      // Throttles how often the workspace's live "best found so far" ref is
-      // written — the heap itself merges on every batch, but redrawing the
-      // UI that often is unnecessary churn (see docs on liveBestResult).
-      let lastLiveBestUpdateMs = 0;
-      const workQueue: Array<{ batch: any[]; batchId: number }> = [];
-      let batchIdCounter = 0;
-      let totalProcessed = 0;
-      const workerBusy = new Map<Worker, boolean>();
-      /** Per-shard total generated (as last reported by that shard) and done flag */
-      const generatorShardTotal = new Map<Worker, number>();
-      const generatorShardDone = new Map<Worker, boolean>();
-      /** True while a given shard is waiting for a "continue" after posting a batch */
-      const generatorShardAwaitingContinue = new Map<Worker, boolean>();
-      const generatorAllDone = () =>
-        generatorWorkers.every((w) => generatorShardDone.get(w) === true);
-      const totalGenerated = () => {
-        let sum = 0;
-        generatorShardTotal.forEach((v) => (sum += v));
-        return sum;
-      };
-      const seenCombinations = new Set<number>();
-      // Cross-shard dedup for generated (not-yet-processed) loadouts: local per-worker
-      // dedup only catches duplicates within one shard; distinct shards can independently
-      // discover the same loadout signature (e.g. two stat-identical main echoes assigned
-      // to different shards). Only needed when there's more than one generator shard.
-      const seenGeneratedHashes =
-        generatorCount > 1 ? new Set<number>() : null;
-      const dedupeBatchAcrossShards = (batch: any[]): any[] => {
-        if (!seenGeneratedHashes) return batch;
-        const deduped: any[] = [];
-        for (const loadout of batch) {
-          const hash = getOptimizerLoadoutHash(loadout);
-          if (seenGeneratedHashes.has(hash)) continue;
-          seenGeneratedHashes.add(hash);
-          deduped.push(loadout);
-        }
-        return deduped;
-      };
-      let readyWorkers = 0;
-      let cleanedUp = false;
-
-      // Serialize static processor config once (not per batch)
-      const serializableContext = createSerializableContext(context);
-      const plainMinStats = Array.isArray(minStats)
-        ? minStats.map((s: any) =>
-            s && typeof s === "object" ? { ...s } : s,
-          )
-        : minStats;
-      const serializableEchoSetPassiveBuffs = JSON.parse(
-        JSON.stringify(echoSetPassiveBuffs),
-      );
-      const serializableMainEchoStats = JSON.parse(
-        JSON.stringify(mainEchoStats),
-      );
-      const serializableRotationData = rotationData
-        ? JSON.parse(JSON.stringify(rotationData))
-        : null;
-
-      const cleanupWorkers = () => {
-        if (cleanedUp) return;
-        cleanedUp = true;
-        currentOptimizerCleanup = null;
-        generatorWorkers.forEach((w) => {
-          try {
-            w.postMessage({ type: "stop" });
-          } catch {
-            // Worker may already be terminated
-          }
-          w.terminate();
-        });
-        processorWorkers.forEach((w) => {
-          try {
-            w.postMessage({ type: "stop" });
-          } catch {
-            // ignore
-          }
-          w.terminate();
-        });
-      };
-      currentOptimizerCleanup = cleanupWorkers;
-
-      /** Ask each generator shard for another batch while the shared queue has room */
-      const maybeContinueGenerator = () => {
-        if (cleanedUp) return;
-        for (const worker of generatorWorkers) {
-          if (workQueue.length >= maxQueuedBatches) break;
-          if (
-            generatorShardDone.get(worker) ||
-            !generatorShardAwaitingContinue.get(worker)
-          ) {
-            continue;
-          }
-          generatorShardAwaitingContinue.set(worker, false);
-          worker.postMessage({ type: "continue" });
-        }
-      };
-
-      // Initialize processor workers with static config once
-      processorWorkers.forEach((worker) => {
-        workerBusy.set(worker, false);
-        worker.postMessage({
-          type: "init",
-          data: {
-            context: serializableContext,
-            minStats: plainMinStats,
-            echoSetPassiveBuffs: serializableEchoSetPassiveBuffs,
-            mainEchoStats: serializableMainEchoStats,
-            target,
-            damageType,
-            rotationData: serializableRotationData,
-            topN,
+        },
+        {
+          onProcessed: (totalProcessed) => {
+            processedCombos.value = totalProcessed;
           },
-        });
-        worker.onmessage = (e) => {
-          if (e.data.type === "ready") {
-            readyWorkers++;
-            if (readyWorkers === processorWorkers.length) {
-              distributeWork();
-            }
-          } else if (e.data.type === "result") {
-            workerBusy.set(worker, false);
-            totalProcessed += e.data.processed || 0;
-            processedCombos.value = totalProcessed;
-
-            // Workers only return local top-N candidates; merge into global heap
-            if (e.data.results && e.data.results.length > 0) {
-              for (const result of e.data.results) {
-                if (
-                  !result ||
-                  !result.loadout ||
-                  !Array.isArray(result.loadout)
-                ) {
-                  continue;
-                }
-                if (result.loadout.length === 0) {
-                  continue;
-                }
-                const hash = getOptimizerLoadoutHash(result.loadout);
-                if (seenCombinations.has(hash)) {
-                  continue;
-                }
-                seenCombinations.add(hash);
-
-                // Ensure targetValue is a number
-                const targetValue =
-                  typeof result.targetValue === "number"
-                    ? result.targetValue
-                    : Number(result.targetValue);
-
-                if (heap.length < topN) {
-                  heap.push({
-                    ...result,
-                    targetValue,
-                    id: randomString(),
-                  });
-                  // Only sort when heap is full or near full (small heap, so sorting is fast)
-                  if (heap.length === topN) {
-                    heap.sort((a, b) => a.targetValue - b.targetValue);
-                  }
-                } else {
-                  // Heap is full, check if this result is better than the minimum
-                  const heapMinValue = heap[0].targetValue;
-
-                  if (targetValue > heapMinValue) {
-                    // Replace minimum and bubble down (more efficient than full sort for small heaps)
-                    heap[0] = {
-                      ...result,
-                      targetValue,
-                      id: randomString(),
-                    };
-                    // Bubble down: swap with smaller child until heap property is restored
-                    let idx = 0;
-                    while (true) {
-                      const left = 2 * idx + 1;
-                      const right = 2 * idx + 2;
-                      let smallest = idx;
-
-                      if (
-                        left < heap.length &&
-                        heap[left].targetValue < heap[smallest].targetValue
-                      ) {
-                        smallest = left;
-                      }
-                      if (
-                        right < heap.length &&
-                        heap[right].targetValue < heap[smallest].targetValue
-                      ) {
-                        smallest = right;
-                      }
-
-                      if (smallest === idx) break;
-
-                      [heap[idx], heap[smallest]] = [heap[smallest], heap[idx]];
-                      idx = smallest;
-                    }
-                  }
-                }
-              }
-            }
-
-            // Optimizer Workspace: throttled snapshot of the current best
-            // (heap is a min-heap, so the max isn't heap[0] — scan it; cheap
-            // since heap.length is bounded by topN). Only meaningful once the
-            // heap has actually filled, otherwise every early insert would
-            // trivially look like "the best so far".
-            if (heap.length >= topN) {
-              const nowMs = performance.now();
-              if (nowMs - lastLiveBestUpdateMs >= 1000) {
-                let best = heap[0];
-                for (let i = 1; i < heap.length; i++) {
-                  if (heap[i].targetValue > best.targetValue) best = heap[i];
-                }
-                if (
-                  !liveBestResult.value ||
-                  best.targetValue > liveBestResult.value.targetValue
-                ) {
-                  liveBestResult.value = best;
-                }
-                lastLiveBestUpdateMs = nowMs;
-              }
-            }
-
-            // Request more work and unblock generator if queue drained
-            distributeWork();
-            maybeContinueGenerator();
-          } else if (e.data.type === "error") {
-            console.error(
-              `Processor worker error (batch ${e.data.batchId}):`,
-              e.data.error,
-            );
-            workerBusy.set(worker, false);
-            totalProcessed += e.data.processed || 0;
-            processedCombos.value = totalProcessed;
-            distributeWork();
-            maybeContinueGenerator();
-          } else {
-            console.warn("Unknown message type from worker:", e.data);
-          }
-        };
-      });
-
-      // Distribute work to available workers
-      const distributeWork = () => {
-        // Don't distribute work if workers aren't ready yet
-        if (readyWorkers < processorWorkers.length) {
-          return;
-        }
-
-        while (workQueue.length > 0) {
-          const work = workQueue.shift();
-          if (!work) break;
-
-          const availableWorker = processorWorkers.find(
-            (w) => !workerBusy.get(w),
-          );
-          if (!availableWorker) {
-            // No available workers, put work back at front
-            workQueue.unshift(work);
-            break;
-          }
-
-          workerBusy.set(availableWorker, true);
-
-          try {
-            // Slim process payload: static config was sent once on init
-            availableWorker.postMessage({
-              type: "process",
-              data: {
-                batch: work.batch,
-                batchId: work.batchId,
-              },
-            });
-          } catch (error: any) {
-            console.error(
-              `Error sending batch ${work.batchId} to worker:`,
-              error,
-            );
-            workerBusy.set(availableWorker, false);
-            // Put work back in queue to retry
-            workQueue.unshift(work);
-          }
-        }
-
-        // Unblock generator once queue has room again
-        maybeContinueGenerator();
-
-        // Check if we're done
-        const allWorkersIdle = processorWorkers.every(
-          (w) => !workerBusy.get(w),
-        );
-        if (generatorAllDone() && workQueue.length === 0 && allWorkersIdle) {
-          // Set final results (sorted descending)
-          const finalResults = heap
-            .slice()
-            .sort((a, b) => b.targetValue - a.targetValue);
-          optimizerResults.value = finalResults;
-          if (finalResults.length === 0) {
-            optimizerEmptyReason.value = resolveOptimizerEmptyReason({
-              inventoryCount: emptyReasonContext.inventoryCount,
-              setFilteredCount: emptyReasonContext.setFilteredCount,
-              unprotectedCount: emptyReasonContext.unprotectedCount,
-              generatedCount: totalProcessed || totalGenerated() || 0,
-            });
-          } else {
-            optimizerEmptyReason.value = null;
-          }
-
-          cleanupWorkers();
-          totalCombos.value = totalProcessed;
-          stopOptimizerTimer();
-          isOptimizerRunning.value = false;
-          trackEvent("optimizer-run", { resultsFound: finalResults.length > 0 });
-        }
-      };
-
-      // Generator worker handlers — one per shard (generatorCount is 1 unless the
-      // user's chosen worker count is 16+, see splitOptimizerWorkerCount)
-      generatorWorkers.forEach((worker, shardIndex) => {
-        generatorShardTotal.set(worker, 0);
-        generatorShardDone.set(worker, false);
-        generatorShardAwaitingContinue.set(worker, false);
-
-        worker.onmessage = (e) => {
-          if (e.data.type === "ready") {
-            // Start generation - ensure echoes are serializable
-            try {
-              // Serialize echoes by only including needed properties
-              const serializedEchoes = serializeEchoes(echoes);
-
-              // Convert Vue reactive arrays/objects to plain arrays/objects
-              // Vue reactive proxies cannot be cloned, so we need to convert them first
-              const plainMainEchoKeys = Array.isArray(mainEchoKeys)
-                ? [...mainEchoKeys] // Convert Proxy array to plain array
-                : mainEchoKeys;
-
-              const messageData = {
-                type: "start",
-                data: {
-                  echoes: serializedEchoes,
-                  mainEchoKeys: plainMainEchoKeys,
-                  batchSize,
-                  loadoutFormat,
-                  shardIndex,
-                  shardCount: generatorCount,
-                },
-              };
-
-              worker.postMessage(messageData);
-              if (process.env.NODE_ENV === "development") {
-                console.log(
-                  `Successfully sent data to generator worker (shard ${shardIndex})`,
-                );
-              }
-            } catch (error) {
-              console.error("Error sending data to generator worker:", error);
-              cleanupWorkers();
-              stopOptimizerTimer();
-              isOptimizerRunning.value = false;
-            }
-          } else if (e.data.type === "batch") {
-            generatorShardTotal.set(worker, e.data.totalGenerated || 0);
-            totalCombos.value = totalGenerated();
-
-            // This shard is paused until we send "continue"
-            generatorShardAwaitingContinue.set(worker, true);
-
-            // Add batch to work queue, deduped against loadouts already seen from other shards
-            const batch = dedupeBatchAcrossShards(e.data.batch || []);
-            if (batch.length > 0) {
-              workQueue.push({
-                batch,
-                batchId: batchIdCounter++,
+          onGenerated: (totalGenerated) => {
+            totalCombos.value = totalGenerated;
+          },
+          onLiveBest: (best) => {
+            liveBestResult.value = best;
+          },
+          onSearchComplete: ({ totalGenerated }) => {
+            optimizerSearchComplete.value = true;
+            optimizerNoPossibleLoadouts.value = totalGenerated === 0;
+            if (totalGenerated === 0) {
+              optimizerEmptyReason.value = resolveOptimizerEmptyReason({
+                inventoryCount: emptyReasonContext.inventoryCount,
+                setFilteredCount: emptyReasonContext.setFilteredCount,
+                unprotectedCount: emptyReasonContext.unprotectedCount,
+                generatedCount: 0,
               });
-
-              // Distribute work if workers are ready
-              if (readyWorkers === processorWorkers.length) {
-                distributeWork();
-              } else {
-                maybeContinueGenerator();
-              }
-            } else {
-              maybeContinueGenerator();
-            }
-          } else if (e.data.type === "done") {
-            generatorShardDone.set(worker, true);
-            generatorShardAwaitingContinue.set(worker, false);
-            generatorShardTotal.set(
-              worker,
-              e.data.totalGenerated ?? generatorShardTotal.get(worker) ?? 0,
-            );
-            totalCombos.value = totalGenerated();
-            if (generatorAllDone()) {
-              optimizerSearchComplete.value = true;
-              optimizerNoPossibleLoadouts.value = totalGenerated() === 0;
-              if (totalGenerated() === 0) {
-                optimizerEmptyReason.value = resolveOptimizerEmptyReason({
-                  inventoryCount: emptyReasonContext.inventoryCount,
-                  setFilteredCount: emptyReasonContext.setFilteredCount,
-                  unprotectedCount: emptyReasonContext.unprotectedCount,
-                  generatedCount: 0,
-                });
-                stopOptimizerTimer();
-                isOptimizerRunning.value = false;
-              }
-            }
-            distributeWork(); // Process remaining work
-          } else if (e.data.type === "error") {
-            console.error(
-              `Generator worker error (shard ${shardIndex}):`,
-              e.data.error,
-            );
-            generatorShardDone.set(worker, true);
-            generatorShardAwaitingContinue.set(worker, false);
-            if (generatorAllDone()) {
-              optimizerSearchComplete.value = true;
               stopOptimizerTimer();
               isOptimizerRunning.value = false;
             }
-            distributeWork();
-          } else {
-            console.warn(
-              "Unknown message type from generator worker:",
-              e.data,
-            );
-          }
-        };
-
-        // Initialize this shard
-        worker.postMessage({ type: "init" });
-      });
+          },
+          onGeneratorFailed: () => {
+            optimizerSearchComplete.value = true;
+            stopOptimizerTimer();
+            isOptimizerRunning.value = false;
+          },
+          onAborted: () => {
+            stopOptimizerTimer();
+            isOptimizerRunning.value = false;
+          },
+          onCleanedUp: () => {
+            currentOptimizerCleanup = null;
+          },
+          onFinished: ({ results, totalProcessed, generatedCount }) => {
+            optimizerResults.value = results;
+            if (results.length === 0) {
+              optimizerEmptyReason.value = resolveOptimizerEmptyReason({
+                inventoryCount: emptyReasonContext.inventoryCount,
+                setFilteredCount: emptyReasonContext.setFilteredCount,
+                unprotectedCount: emptyReasonContext.unprotectedCount,
+                generatedCount,
+              });
+            } else {
+              optimizerEmptyReason.value = null;
+            }
+            totalCombos.value = totalProcessed;
+            stopOptimizerTimer();
+            isOptimizerRunning.value = false;
+            trackEvent("optimizer-run", { resultsFound: results.length > 0 });
+          },
+        },
+      );
+      currentOptimizerCleanup = run.cancel;
     };
 
     // Optimizer Workspace only (legacy CalculatorOptimizer.vue has no cancel
@@ -2284,8 +1802,140 @@ export default defineComponent({
 
     function getRotationData(character, rotationId) {}
 
+    // V3 build-vs-live split (ADR 0051): the character's build-only stats —
+    // the same numbers the build card shows — recomputed from stored build
+    // data whenever the build changes. Toggling an ordinary buff doesn't
+    // change the build, so this stays off the per-toggle hot path.
+    const buildOnlyStats = ref(null);
+    let buildOnlyStatsRequestId = 0;
+    const equippedEchoesForBuild = () => {
+      const slots = characters.value?.[character.value]?.echoes ?? {};
+      return Object.values(slots).map((slot) =>
+        slot?.echoId ? (inventoryStore.getEchoById?.(slot.echoId) ?? null) : null,
+      );
+    };
+    watch(
+      () => [
+        isLiveResultBarEnabled.value,
+        character.value,
+        characters.value?.[character.value],
+        equippedEchoesForBuild(),
+      ],
+      async ([isEnabled, nextCharacter]) => {
+        const requestId = ++buildOnlyStatsRequestId;
+        if (!isEnabled || !nextCharacter) {
+          buildOnlyStats.value = null;
+          return;
+        }
+        try {
+          const built = await computeBuildOnlyStats(
+            nextCharacter,
+            characters.value,
+            inventoryStore.echoes,
+          );
+          // A newer build change (or character switch) superseded this one.
+          if (requestId !== buildOnlyStatsRequestId) return;
+          buildOnlyStats.value = { character: nextCharacter, ...built };
+        } catch (error) {
+          if (requestId !== buildOnlyStatsRequestId) return;
+          console.error("Failed to compute build-only stats", error);
+          buildOnlyStats.value = null;
+        }
+      },
+      { immediate: true, deep: true },
+    );
+    // Never show one character's build against another's live stats.
+    const currentBuildOnlyStats = computed(() =>
+      buildOnlyStats.value?.character === character.value
+        ? buildOnlyStats.value
+        : null,
+    );
+    const buildStatValues = computed(
+      () => currentBuildOnlyStats.value?.values ?? null,
+    );
+    const liveResultBarBuildStatValues = computed(() => {
+      const values = buildStatValues.value;
+      if (!values) return null;
+      return {
+        totalHp: values.totalHp,
+        totalAtk: values.totalAtk,
+        totalDef: values.totalDef,
+        totalCritRate: values.totalCritRate,
+        totalCritDMG: values.totalCritDmg,
+        energyRegen: values.energyRegen,
+      };
+    });
+    const liveStatValues = computed(() => ({
+      totalHp: totalHp.value,
+      totalAtk: totalAtk.value,
+      totalDef: totalDef.value,
+      totalCritRate: totalCritRate.value,
+      totalCritDmg: totalCritDMG.value,
+      energyRegen: energyRegen.value,
+      basicAttackDmgBonus: BasicAttackDMGBonus.value,
+      heavyAttackDmgBonus: HeavyAttackDMGBonus.value,
+      resonanceSkillDmgBonus: ResonanceSkillDMGBonus.value,
+      resonanceLiberationDmgBonus: ResonanceLiberationDMGBonus.value,
+      healingBonus: healingBonus.value,
+      tuneBreakBoost: tuneBreakBoost.value,
+      glacio: Glacio.value,
+      fusion: Fusion.value,
+      electro: Electro.value,
+      aero: Aero.value,
+      spectro: Spectro.value,
+      havoc: Havoc.value,
+    }));
+    // Same inputs computeAllBuffsWithBreakdown/updateStats used for the live
+    // numbers, in the shape statSplit.ts attributes per source.
+    const liveStatSourceInputs = () => ({
+      baseHp: baseHp.value,
+      baseAtk: baseAtk.value,
+      baseDef: baseDef.value,
+      weaponData: weaponData?.value ?? {},
+      selfBuffs: appliedCharBuffsData.value ?? {},
+      resonanceChains: charResonanceChainsData?.value ?? {},
+      echoStats: echoStats?.value ?? {},
+      echoSetAdditionalBase: echoSetAdditionalBaseBuffsData.value ?? {},
+      customBuffs: customBuffs?.value ?? {},
+      teamBuffs: teamBuffsData?.value ?? {},
+      tuneBreakBoost: {
+        base: chosenChar?.value?.basic?.tuneBreakBoost ?? 0,
+        selfBuffs: charBuffsData?.value?.tuneBreakBoost ?? 0,
+        resonanceChains: charResonanceChainsData?.value?.tuneBreakBoost ?? 0,
+        teamBuffs: teamBuffsData?.value?.tuneBreakBoost ?? 0,
+        echoes: echoStats?.value?.tuneBreakBoost ?? 0,
+      },
+    });
+    // Only built while a stat detail is open in V3 — classic keeps its own
+    // breakdown untouched.
+    const selectedStatSplit = computed(() => {
+      if (!isLiveResultBarEnabled.value || !selectedStat.value) return null;
+      const build = currentBuildOnlyStats.value;
+      const selection = resolveStatSelection(selectedStat.value);
+      if (!build || !selection) return null;
+      const { statKey, element } = selection;
+      return splitStat(
+        statKey,
+        {
+          build: {
+            inputs: build.inputs,
+            value: liveStatValueFor(build.values, statKey, element),
+          },
+          live: {
+            inputs: liveStatSourceInputs(),
+            value: liveStatValueFor(liveStatValues.value, statKey, element),
+          },
+        },
+        element,
+      );
+    });
+
     return {
       allDamages,
+      buildStatValues,
+      liveResultBarBuildStatValues,
+      selectedStatSplit,
+      calculatorSections: CALCULATOR_SECTIONS,
       character,
       characters,
       characterLevel,
@@ -2303,6 +1953,7 @@ export default defineComponent({
       rotationsList,
       curScreen,
       changeScreen,
+      screensRef,
       hasVisitedBuildCard,
       damage,
       updateStatsEchoes,
@@ -2425,7 +2076,7 @@ export default defineComponent({
   // live AppUpdateBanner height via --announce-banner-h (0px when the
   // banner is hidden/unmounted). Falling out of sync here overflows the
   // parent and clips the bottom of both panels whenever the banner shows.
-  height: calc(100vh - 80px - var(--announce-banner-h, 0px));
+  height: calc(100vh - var(--nav-h) - var(--nav-bottom-h) - var(--announce-banner-h, 0px));
 
   @media (max-width: 768px) {
     display: block;

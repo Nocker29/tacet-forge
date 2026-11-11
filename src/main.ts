@@ -18,10 +18,11 @@ import { reportClassicUiSession } from "./composables/useClassicUi";
 import { applyAppTheme } from "./composables/useTheme";
 
 import HomeView from "./pages/HomeView.vue";
-import OptimizerView from "./pages/OptimizerView.vue";
 import UpdatesView from "./pages/UpdatesView.vue";
 import InfoView from "./pages/InfoView.vue";
 import InfoOverview from "./components/info/InfoOverview.vue";
+import InfoGuides from "./components/info/InfoGuides.vue";
+import InfoGuideArticle from "./components/info/InfoGuideArticle.vue";
 import InfoCvRv from "./components/info/InfoCvRv.vue";
 import InfoTuningOdds from "./components/info/InfoTuningOdds.vue";
 import InfoFormulas from "./components/info/InfoFormulas.vue";
@@ -33,11 +34,13 @@ import InventoryView from "./pages/InventoryView.vue";
 import ConveneView from "./pages/ConveneView.vue";
 import TeamRotationsView from "./pages/TeamRotationsView.vue";
 import CharactersView from "./pages/CharactersView.vue";
+import ScannersView from "./pages/ScannersView.vue";
 
 const routes = [
   { path: "/", component: HomeView, name: "HomeView" },
   // { path: "/calculator", component: HomeView, name: 'HomeView' },
-  { path: "/optimizer", component: OptimizerView, name: "OptimizerView" },
+  // The optimizer lives in the calculator; old links to its placeholder page land there.
+  { path: "/optimizer", redirect: "/" },
   { path: "/updates", component: UpdatesView, name: "UpdatesView" },
   // Children only render when the liveResultBar "UI Overhaul 3.0" flag is
   // on - InfoView.vue renders the full legacy article on every one of
@@ -49,6 +52,8 @@ const routes = [
     name: "InfoView",
     children: [
       { path: "", component: InfoOverview, name: "InfoOverview" },
+      { path: "guides", component: InfoGuides, name: "InfoGuides" },
+      { path: "guides/:slug", component: InfoGuideArticle, name: "InfoGuideArticle" },
       { path: "cv-echo-rating", component: InfoCvRv, name: "InfoCvRv" },
       { path: "tuning-odds", component: InfoTuningOdds, name: "InfoTuningOdds" },
       { path: "formulas", component: InfoFormulas, name: "InfoFormulas" },
@@ -62,11 +67,21 @@ const routes = [
   { path: "/convene", component: ConveneView, name: "ConveneView" },
   { path: "/teams", component: TeamRotationsView, name: "TeamRotationsView" },
   { path: "/characters", component: CharactersView, name: "CharactersView" },
+  { path: "/scanners", component: ScannersView, name: "ScannersView" },
 ];
 
 const router = createRouter({
   history: createWebHistory("/"),
   routes,
+  // Back/forward returns to where you were; a new page starts at the top.
+  // Query-only changes (e.g. /settings?section=wavescan) keep the position.
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition;
+    // Guide links land on a section (/scanners#wavescan); its CSS scroll-margin clears the nav.
+    if (to.hash) return { el: to.hash };
+    if (to.path !== from.path) return { top: 0 };
+    return false;
+  },
 });
 
 // Tacet Forge: corrupted saved data (or a crash while loading it) shows a
