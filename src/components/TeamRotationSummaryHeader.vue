@@ -10,7 +10,7 @@
   layout's sticky column. -->
   <div ref="sentinelEl" class="h-px"></div>
   <div
-    class="sticky top-20 z-30"
+    class="sticky top-[var(--nav-h)] z-30"
     :class="isStuck ? 'bg-base-200/95 backdrop-blur shadow-md rounded-lg px-4 py-2 mb-6' : 'bg-base-200 shadow-lg rounded-lg p-4 mb-6'"
     data-test-team-rotation-summary
     :data-test-team-rotation-summary-stuck="isStuck">
@@ -30,10 +30,20 @@
         Average: {{ displayDamage(result.total.avgDamage ?? 0) }} /
         Crit: {{ displayDamage(result.total.critDamage ?? 0) }}
       </span>
-      <span v-if="duration" class="opacity-70 shrink-0">{{ displayDamage(result.dps.normal) }} DPS</span>
+      <span v-if="headline" class="opacity-70 shrink-0" :title="headline.label" data-test-team-rotation-header-dps>
+        {{ displayDamage(headline.dps.normal) }} DPS{{ headline.source === "frames" ? " (frame data)" : "" }}
+      </span>
       <div class="flex-1 min-w-[100px] max-w-xs">
         <TeamRotationDamageBar :per-character="result.perCharacter" compact />
       </div>
+      <button
+        v-if="showOptimize"
+        type="button"
+        class="btn btn-xs btn-outline btn-primary shrink-0"
+        data-test-team-rotation-summary-optimize
+        @click="emit('optimize')">
+        Optimize team
+      </button>
       <button
         type="button"
         class="btn btn-xs btn-primary shrink-0"
@@ -53,6 +63,14 @@
       <div class="flex items-center justify-between gap-2">
         <h2 class="font-semibold truncate">{{ teamName }}</h2>
         <div class="flex gap-2 shrink-0">
+          <button
+            v-if="showOptimize"
+            type="button"
+            class="btn btn-sm btn-outline btn-primary"
+            data-test-team-rotation-summary-optimize
+            @click="emit('optimize')">
+            Optimize team
+          </button>
           <button
             type="button"
             class="btn btn-sm btn-primary"
@@ -76,7 +94,10 @@
           Average: {{ displayDamage(result.total.avgDamage ?? 0) }} /
           Crit: {{ displayDamage(result.total.critDamage ?? 0) }}
         </span>
-        <span v-if="duration"><span class="font-bold">DPS:</span> {{ displayDamage(result.dps.normal) }}</span>
+        <span v-if="headline" :title="headline.label" data-test-team-rotation-header-dps>
+          <span class="font-bold">DPS{{ headline.source === "frames" ? " (frame data)" : "" }}:</span>
+          {{ displayDamage(headline.dps.normal) }}
+        </span>
         <span class="opacity-70">{{ actionCount }} action{{ actionCount === 1 ? "" : "s" }}</span>
       </div>
       <TeamRotationDamageBar :per-character="result.perCharacter" />
@@ -85,12 +106,19 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import TeamRotationDamageBar from "./TeamRotationDamageBar.vue";
 import { displayDamage } from "../utils/numbers";
-import type { DamageAggregation, RotationDps, TeamRotationCharacterResult } from "../calculator/teamRotation";
+import {
+  headlineDps,
+  rotationDpsReadings,
+  type DamageAggregation,
+  type RotationDps,
+  type TeamRotationCharacterResult,
+} from "../calculator/teamRotation";
+import type { RotationLength } from "../calculator/rotationTiming";
 
-defineProps<{
+const props = defineProps<{
   teamName: string;
   characterIds: Array<string | null>;
   actionCount: number;
@@ -100,11 +128,21 @@ defineProps<{
     total: DamageAggregation;
     dps: RotationDps;
   };
+  /** Length from frame data, or null without any. */
+  frameLength?: RotationLength | null;
+  /** The teamOptimizer lab's button (ADR 0052). */
+  showOptimize?: boolean;
 }>();
+
+// The typed duration's DPS, else frame data's (ADR 0048).
+const headline = computed(() =>
+  headlineDps(rotationDpsReadings(props.result.total, props.duration, props.frameLength ?? null)),
+);
 
 const emit = defineEmits<{
   "view-damages": [];
   "view-summary": [];
+  optimize: [];
 }>();
 
 function characterImage(characterId: string) {
@@ -115,6 +153,11 @@ const sentinelEl = ref<HTMLElement | null>(null);
 const isStuck = ref(false);
 let observer: IntersectionObserver | null = null;
 
+// The fixed nav's height (--nav-h, set by Nav.vue), so "stuck" means stuck under it.
+function navHeight(): number {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) || 80;
+}
+
 onMounted(() => {
   // `root: null` (the default) tracks the browser viewport — on this page
   // the actual scroll position lives on `document.documentElement`
@@ -123,7 +166,7 @@ onMounted(() => {
     ([entry]) => {
       isStuck.value = !entry.isIntersecting;
     },
-    { rootMargin: "-80px 0px 0px 0px", threshold: 0 },
+    { rootMargin: `-${navHeight()}px 0px 0px 0px`, threshold: 0 },
   );
   if (sentinelEl.value) observer.observe(sentinelEl.value);
 });

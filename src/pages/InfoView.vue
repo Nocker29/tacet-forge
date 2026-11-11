@@ -1,5 +1,10 @@
 <template>
-  <Nav cur-page="info" :disable-mobile-nav="true"></Nav>
+  <Nav
+    cur-page="info"
+    :disable-mobile-nav="true"
+    :sections="isLiveResultBarEnabled ? INFO_SECTIONS : null"
+    :active-section="activeSection"
+    @select-section="router.push($event)"></Nav>
 
   <!-- Labs flag "UI Overhaul 3.0" (liveResultBar) off: legacy single
        article, untouched, rendered on every /info/* path (no redirect -
@@ -182,30 +187,36 @@
     </p>
   </article>
 
-  <!-- Labs flag on: shared workspace side nav + nested route content. -->
-  <div v-else class="page-info page-info--v3 flex flex-col sm:flex-row gap-6">
-    <WorkspaceSideNav title="Info" :groups="navGroups" />
-    <div class="flex-1 min-w-0">
-      <RouterView />
-    </div>
+  <!-- Labs flag on: nested route content; its pages are in the nav's tab row
+       (INFO_SECTIONS, ADR 0045). -->
+  <div v-else class="page-info page-info--v3" :class="{ 'page-info--wide': isWide }">
+    <RouterView />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import Nav from "../components/navigation/Nav.vue";
-import WorkspaceSideNav, {
-  type WorkspaceNavGroup,
-} from "../components/WorkspaceSideNav.vue";
+import { INFO_SECTIONS } from "../components/navigation/navSections";
 import { useSettingsStore } from "../stores/settings";
 import { isV3UiEnabled } from "../utils/uiVersion";
 import { useDocumentTitle } from "../composables/useDocumentTitle";
 import { APP_NAME, FORK_REPO_URL, UPSTREAM_NAME, UPSTREAM_REPO_URL } from "../utils/forkInfo";
 
+const route = useRoute();
+const router = useRouter();
 const settingsStore = useSettingsStore();
 const isLiveResultBarEnabled = computed(
   () => isV3UiEnabled(settingsStore),
 );
+
+// A guide article keeps the Guides tab active.
+const activeSection = computed(() =>
+  route.path.startsWith("/info/guides") ? "/info/guides" : route.path,
+);
+// The tuning planner's layout is designed for the narrower column.
+const isWide = computed(() => route.name !== "InfoTuningOdds");
 
 // Sets a page-specific title/description for /info (and every /info/* path
 // when the liveResultBar flag is off, since that path renders this same
@@ -215,57 +226,6 @@ useDocumentTitle(
   "Info — Tacet Forge",
   "What Tacet Forge can do: damage calculator, echo optimizer, Echo Rating, convene simulator, inventory, and more.",
 );
-
-function svgIcon(paths: string) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${paths}</svg>`;
-}
-
-const navGroups: WorkspaceNavGroup[] = [
-  {
-    items: [
-      {
-        id: "overview",
-        label: "Overview",
-        to: "/info",
-        icon: svgIcon(
-          '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>',
-        ),
-      },
-      {
-        id: "cv-echo-rating",
-        label: "CV & Echo Rating",
-        to: "/info/cv-echo-rating",
-        icon: svgIcon(
-          '<circle cx="12" cy="8" r="6"></circle><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path>',
-        ),
-      },
-      {
-        id: "tuning-odds",
-        label: "Tuning Planner",
-        to: "/info/tuning-odds",
-        icon: svgIcon(
-          '<path d="M4 17l6-6 4 4 6-8"></path><path d="M14 7h6v6"></path>',
-        ),
-      },
-      {
-        id: "formulas",
-        label: "Formulas",
-        to: "/info/formulas",
-        icon: svgIcon(
-          '<line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line>',
-        ),
-      },
-      {
-        id: "credits",
-        label: "Credits & Community",
-        to: "/info/credits",
-        icon: svgIcon(
-          '<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path>',
-        ),
-      },
-    ],
-  },
-];
 </script>
 
 <style scoped lang="scss">
@@ -278,6 +238,13 @@ const navGroups: WorkspaceNavGroup[] = [
 
   &.page-info--v3 {
     max-width: 920px;
+    @media (max-width: 768px) {
+      padding: 1.25rem 1rem;
+    }
+  }
+
+  &.page-info--wide {
+    max-width: 1180px;
   }
 }
 </style>

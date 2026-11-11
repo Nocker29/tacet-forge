@@ -90,7 +90,7 @@ describe("InfoView (flag on, nested routes)", () => {
     await router.push("/info");
     await router.isReady();
 
-    expect(screen.getByText(/still a work in progress/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("See exactly how hard your build hits");
     expect(document.title).toContain("Info");
   });
 
@@ -99,7 +99,7 @@ describe("InfoView (flag on, nested routes)", () => {
     await router.push("/info/formulas");
     await router.isReady();
 
-    expect(screen.getByText(/Same formulas as the Wuthering Waves Wiki/)).toBeInTheDocument();
+    expect(screen.getByText(/same formulas as the Wuthering Waves Wiki/)).toBeInTheDocument();
     expect(document.title).toContain("Formulas");
   });
 
@@ -109,7 +109,7 @@ describe("InfoView (flag on, nested routes)", () => {
     await router.isReady();
 
     expect(screen.getByText(/Crit Rate × 2 \+ Crit DMG/)).toBeInTheDocument();
-    expect(screen.getByText("Substat Score (0% to 100%)")).toBeInTheDocument();
+    expect(screen.getByText("Substat Score has its own, even bands")).toBeInTheDocument();
     expect(document.title).toContain("Echo Rating");
   });
 
@@ -119,12 +119,12 @@ describe("InfoView (flag on, nested routes)", () => {
     await router.isReady();
 
     // Original credits stay, with the fork notice on top (GPL §5a).
-    expect(screen.getByText("Author: @LavaSnake")).toBeInTheDocument();
+    expect(screen.getByText(/@LavaSnake, author/)).toBeInTheDocument();
     const notice = document.querySelector("[data-test-fork-notice]")!;
     expect(notice.textContent).toContain("based on");
     expect(notice.textContent).toContain("modified version");
     expect(notice.querySelector('a[href="https://github.com/ryanbenson/wuthering-waves-optimizer"]')).not.toBeNull();
-    expect(notice.querySelector('a[href="https://github.com/Nocker29/tacet-forge"]')).not.toBeNull();
+    expect(document.querySelector('a[href="https://github.com/Nocker29/tacet-forge"]')).not.toBeNull();
     expect(document.title).toContain("Credits");
   });
 });

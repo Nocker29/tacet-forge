@@ -151,6 +151,27 @@
       </div>
     </div>
 
+    <section
+      v-if="isLiveResultBarEnabled && !rotations.length"
+      class="bg-base-200 border border-base-content/10 rounded-2xl p-5 sm:p-8 flex flex-col items-start gap-3"
+      data-test-rotations-empty-state>
+      <h2 class="text-xl font-bold">No rotations yet</h2>
+      <p class="max-w-2xl leading-relaxed">
+        A rotation scores a whole sequence of attacks instead of one hit. Start from a
+        rotation made for this character, or build your own.
+      </p>
+      <div class="flex flex-wrap gap-2 pt-1">
+        <button type="button" class="btn btn-sm btn-primary" data-test-rotations-empty-presets @click="isPresetRotationsOpen = true">
+          Start from a preset
+        </button>
+        <button type="button" class="btn btn-sm btn-outline" data-test-rotations-empty-create @click="handleCreateRotation">
+          Create your own
+        </button>
+        <button type="button" class="btn btn-sm btn-ghost" data-test-rotations-empty-guide @click="openGuide('rotations', 'rotations-empty')">
+          How rotations work
+        </button>
+      </div>
+    </section>
     <ul v-if="isLiveResultBarEnabled" class="flex flex-col gap-2" data-test-rotations-list>
       <CalculatorRotationRow
         v-for="(rotation, index) in sortedRotations"
@@ -162,6 +183,7 @@
         :stat-label="leaderboardMetric === 'normal' ? 'Normal' : leaderboardMetric === 'crit' ? 'Crit' : 'Avg'"
         :actions-count="rotation.actions.length"
         :duration="rotation.duration"
+        :frame-seconds="frameSecondsById[rotation.id] ?? null"
         :echo="rotation.echo"
         @open="openRotationId = rotation.id"
         @toggle-favorite="toggleFavoriteRotation(rotation.id)"
@@ -222,6 +244,9 @@ import { useToast } from "../composables/useToast";
 import { useDragReorder } from "../composables/useDragReorder";
 import { useSettingsStore } from "../stores/settings";
 import { isV3UiEnabled } from "../utils/uiVersion";
+import { useGuideDrawer } from "../composables/useGuideDrawer";
+import { headlineDps, rotationDpsReadings } from "../calculator/teamRotation";
+import { framesToSeconds, type RotationLength } from "../calculator/rotationTiming";
 import {
   buildCharacterCalculationContext,
   type CharacterCalculationContext,
@@ -261,6 +286,14 @@ type RotationDamageAttack = {
     healAmount?: number;
     shieldAmount?: number;
   };
+};
+
+type RotationDamageEntry = {
+  id: string;
+  damageAggregation?: Record<string, number>;
+  attacks?: RotationDamageAttack[];
+  /** Attached by Calculator.vue from frame data (ADR 0048). */
+  frameLength?: RotationLength | null;
 };
 
 type RotationStats = {
@@ -359,9 +392,22 @@ async function recomputeCharacterContext() {
 watch(currentCharacter, () => void recomputeCharacterContext(), { deep: true });
 
 const settingsStore = useSettingsStore();
+const { openGuide } = useGuideDrawer();
 const isLiveResultBarEnabled = computed(
   () => isV3UiEnabled(settingsStore),
 );
+
+// A row's length: the typed duration, else the frame-data one, same rule as
+// its DPS.
+const frameSecondsById = computed<Record<string, number>>(() => {
+  const map: Record<string, number> = {};
+  const entries = ((props.allDamages as { rotations?: RotationDamageEntry[] } | null)?.rotations) ?? [];
+  for (const entry of entries) {
+    const length = entry.frameLength;
+    if (length && length.gameFrames > 0) map[entry.id] = framesToSeconds(length.gameFrames);
+  }
+  return map;
+});
 
 // Rotation Flow (Labs) list/summary — sort-driven ranking replaces manual
 // drag order, matching TeamRotations.vue's list; drag-reorder is legacy-only.
@@ -381,8 +427,7 @@ const leaderboardMetric = computed<"normal" | "avg" | "crit">(() =>
 const rotationStatsById = computed<Record<string, RotationStats>>(() => {
   const map: Record<string, RotationStats> = {};
   const rotationsDamage =
-    ((props.allDamages as { rotations?: Array<{ id: string; damageAggregation?: Record<string, number>; attacks?: RotationDamageAttack[] }> } | null)
-      ?.rotations) ?? [];
+    ((props.allDamages as { rotations?: RotationDamageEntry[] } | null)?.rotations) ?? [];
   for (const entry of rotationsDamage) {
     const agg = entry.damageAggregation ?? {};
     let hitNormal = 0;
@@ -394,10 +439,17 @@ const rotationStatsById = computed<Record<string, RotationStats>>(() => {
       hitCrit = Math.max(hitCrit, attack.damage?.critDamage ?? 0);
     }
     const rotation = rotations.value.find((r) => r.id === entry.id);
-    const duration = rotation && Number(rotation.duration) > 0 ? Number(rotation.duration) : 0;
     const normal = agg.normalDamage ?? 0;
     const avg = agg.avgDamage ?? 0;
     const crit = agg.critDamage ?? 0;
+    // One DPS per rotation: the typed duration, else frame data (ADR 0048).
+    const headline = headlineDps(
+      rotationDpsReadings(
+        { normalDamage: normal, avgDamage: avg, critDamage: crit, healing: 0, shield: 0 },
+        rotation?.duration,
+        entry?.frameLength,
+      ),
+    );
     map[entry.id] = {
       normal,
       avg,
@@ -407,9 +459,9 @@ const rotationStatsById = computed<Record<string, RotationStats>>(() => {
       hitNormal,
       hitAvg,
       hitCrit,
-      dpsNormal: duration ? normal / duration : 0,
-      dpsAvg: duration ? avg / duration : 0,
-      dpsCrit: duration ? crit / duration : 0,
+      dpsNormal: headline?.dps.normal ?? 0,
+      dpsAvg: headline?.dps.avg ?? 0,
+      dpsCrit: headline?.dps.crit ?? 0,
     };
   }
   return map;

@@ -2,12 +2,25 @@
 // hand-written UpdatesView.vue markup - see docs/adr/0023-updates-page-search-and-grouping-redesign.md.
 // Going forward, add new entries directly here (newest first), not as markup.
 
+import { GUIDE_IMAGES } from "./guides/images";
+import type { GuideImage } from "./guides/types";
+
+/** What a bullet is. Hand-written and optional: history stays untagged (ADR 0054). */
+export type UpdateTag = "feature" | "content" | "labs" | "fix";
+
+export interface UpdateItemDetails {
+  tag?: UpdateTag;
+  image?: GuideImage;
+}
+
 export interface UpdateEntry {
   /** ISO date, e.g. "2026-08-29" - sort/group key, do not derive from dateLabel at runtime. */
   date: string;
   /** Exact display text, e.g. "August 29, 2026". */
   dateLabel: string;
   items: string[];
+  /** Optional tag and picture for a bullet, keyed by its index in `items`. */
+  itemDetails?: Record<number, UpdateItemDetails>;
 }
 
 export interface Announcement {
@@ -32,11 +45,135 @@ export interface Announcement {
 //   headline: "Version 3.7 (first half) is up!",
 // };
 export const currentAnnouncement: Announcement | null = {
-  date: "2026-10-21",
-  headline: "Suoming is released!",
+  date: "2026-11-09",
+  headline: "Build cards got redesigned!",
 };
 
 export const updateEntries: UpdateEntry[] = [
+  {
+    date: "2026-11-09",
+    dateLabel: "November 9, 2026",
+    items: [
+      "Build cards got a new look and three layouts to pick from: Columns, Hero and Showcase. Uploaded backgrounds now show evenly behind every panel, and without one the card uses your character's art as a soft background. Pick character art and backgrounds for your build card from a curated list, or keep uploading your own. Each character now keeps its own background, and a new slider fades it if it's too busy",
+    ],
+    itemDetails: { 0: { tag: "feature" } },
+  },
+  {
+    date: "2026-11-08",
+    dateLabel: "November 8, 2026",
+    items: [
+      "Optimizer loadout results now show which other resonators are already wearing an echo (\"Also on Zani +2\"), next to \"Already equipped\" for the current one. Hover it to see everyone. Equipping the loadout keeps the echo on them too",
+    ],
+    itemDetails: { 0: { tag: "feature" } },
+  },
+  {
+    date: "2026-11-07",
+    dateLabel: "November 7, 2026",
+    items: [
+      "Guides now open beside the screen they explain instead of covering it. Try the Optimizer Guide, the Echoes screen's Rating Guide and Presets guide, or How the odds are worked out on Convene",
+      "An empty inventory now shows the four ways to fill it, and a character with no rotations gets a quick way to start from a preset",
+      "New guides for scanning your echoes, importing a Discord build card, how echo grades work, and how Convene odds are worked out",
+    ],
+    itemDetails: { 0: { tag: "feature" }, 1: { tag: "feature" }, 2: { tag: "feature" } },
+  },
+  {
+    date: "2026-11-06",
+    dateLabel: "November 6, 2026",
+    items: [
+      "Fixed the optimizer scoring some builds too low when a character's buffs scale with their own stats, like Mornye's with Energy Regen. It used the stats of what the character was wearing, so a build could score higher after you equipped it. Results for these characters may change, and may pick different builds",
+      "Rotation timing from frame data is now on for everyone, out of Labs. Character and team rotations show how long they take and the DPS from each action's frame data (thanks to wuwalab), next to the DPS from your typed duration. Set how each action ends (cancel, dash, swap) from its frame chip, and rotations with frame data get the new timeline charts. Feedback is welcome in the Discord",
+      "New Guides section under Info, with step-by-step guides and pictures for scanning echoes, setting up a character, the Optimizer, rotations and more. Find them under Info → Guides",
+      "The Info, Formulas, CV & Echo Rating, Credits, Privacy and Legal pages got a visual makeover. Try scoring an echo on CV & Echo Rating, or moving the sliders on Formulas to see how a hit adds up",
+      "The Optimizer Guide no longer says echoes have to be entered by hand, and points to the scanners instead",
+    ],
+    itemDetails: { 0: { tag: "fix" }, 1: { tag: "feature" }, 2: { tag: "feature" }, 3: { tag: "feature" }, 4: { tag: "fix" } },
+  },
+  {
+    date: "2026-11-02",
+    dateLabel: "November 2, 2026",
+    items: [
+      "Your stats now show how much comes from your build and how much from buffs. Each stat has a bar: gray is your build (the same number as your build card) and colored is what your buffs add on top",
+      "Click a stat in the full breakdown to see where it comes from: your build plus your buffs equals what you have now, with each source listed",
+    ],
+    itemDetails: { 0: { tag: "feature", image: GUIDE_IMAGES.statBar }, 1: { tag: "feature" } },
+  },
+  {
+    date: "2026-10-30",
+    dateLabel: "October 30, 2026",
+    items: [
+      "Labs: with Rotation timing from frame data on, rotations get new charts. A character rotation shows your damage adding up over time and its biggest hits, and a team rotation shows each character in their own row, with when they swap in and out and their share of the damage",
+      "Labs: when you swap out of an attack, the rest of its hits now count. Before, frame-data timing could leave them out",
+    ],
+    itemDetails: { 0: { tag: "labs" }, 1: { tag: "labs" } },
+  },
+  {
+    date: "2026-10-29",
+    dateLabel: "October 29, 2026",
+    items: [
+      "Adds missing attack to Suoming's S6",
+      "New in Labs: Rotation timing from frame data (turn it on in Settings → Labs). Rotations work out how long they take from each attack's real animation length, and show the DPS from that next to the duration you typed",
+      "Labs: each action in a rotation has a badge that says how it ends (plays out, cancel, dash, jump or swap, plus an optional wait). Click it to change it, and the timing updates",
+      "Labs: frame-data timing works for team rotations too, and rotation results and leaderboards show the frame-data DPS",
+      "Frame data comes from wuwalab, now listed on the Credits page",
+    ],
+    itemDetails: { 0: { tag: "fix" }, 1: { tag: "labs" }, 2: { tag: "labs" }, 3: { tag: "labs" } },
+  },
+  {
+    date: "2026-10-28",
+    dateLabel: "October 28, 2026",
+    items: [
+      "Fixed a few misspelled attack and buff names. Your saved builds and rotations update automatically, and nothing changes in your numbers",
+    ],
+    itemDetails: { 0: { tag: "fix" } },
+  },
+  {
+    date: "2026-10-27",
+    dateLabel: "October 27, 2026",
+    items: [
+      "A new look for Wuthering Tools: a new logo, in the menu and on your browser tab",
+      "New navigation. On a computer, the main areas (Calculator, Inventory, Teams and Convene) are down the left side, and the current page's sections run along the top. On phones, the main areas sit in a bar at the bottom, and the menu button at the top lists the page's sections",
+      "Settings and Info now use the same sections row as the calculator, instead of their own side menus",
+      "On phones, theme and display options are under More → Appearance",
+      "New Scanners page that walks through every way to get your echoes in without typing them: Wavescan (a new desktop app for Windows and Mac), scanning in your browser by sharing your screen or uploading a recording, and Discord bot build cards. It also explains how each one keeps your data on your device",
+      "The in-browser echo scanner is out of Labs: use Scan echoes in your inventory to read echoes from a shared game window or a recording",
+      "On phones, the bottom bar and the calculator's top bar get out of the way while you scroll down, and come back as soon as you scroll up",
+      "Long attack names in the calculator's top bar now wrap onto two lines instead of pushing everything aside",
+      "Changing page or section now starts you at the top",
+      "Fixed buttons that became hard to read when you hovered over them",
+    ],
+  },
+  {
+    date: "2026-10-26",
+    dateLabel: "October 26, 2026",
+    items: [
+      "You can now find an echo by typing its name in a search box in your inventory and when picking an echo, just like the weapon and character pickers",
+      "Each page now shows its own name in the browser tab",
+    ],
+  },
+  {
+    date: "2026-10-25",
+    dateLabel: "October 25, 2026",
+    items: [
+      "Your main echo slot now stands out more",
+      "Drag one echo onto another to swap their slots",
+    ],
+  },
+  {
+    date: "2026-10-24",
+    dateLabel: "October 24, 2026",
+    items: [
+      "On phones, the calculator's top bar is now one row: your character, mode and damage number stay in view. Tap the name to change level, build or mode, or the arrow by the number for damage type and stats",
+    ],
+  },
+  {
+    date: "2026-10-23",
+    dateLabel: "October 23, 2026",
+    items: [
+      "Adds Suoming echo presets and recommended weapons",
+      "Character browser now remembers your filters and view settings",
+      "Adds Suoming echo presets and recommended weapons, and adds DPS rotation for her",
+    ],
+  },
   {
     date: "2026-10-22",
     dateLabel: "October 22, 2026",

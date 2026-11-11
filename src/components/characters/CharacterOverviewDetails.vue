@@ -181,7 +181,7 @@ import { useTeamSubstatScoreRollup } from "../../composables/useTeamSubstatScore
 import { getRatingBadgeClasses } from "../../composables/useEchoRating";
 import AppChooserModal from "../AppChooserModal.vue";
 import AppImage from "../AppImage.vue";
-import CalculatorBuildCardWeaponPanel from "../CalculatorBuildCardWeaponPanel.vue";
+import CalculatorBuildCardWeaponPanel from "./CharacterWeaponPanel.vue";
 import CalculatorOptimizerResultLoadoutEcho from "../CalculatorOptimizerResultLoadoutEcho.vue";
 import CalculatorStats from "../CalculatorStats.vue";
 import CharacterAvatar from "./CharacterAvatar.vue";

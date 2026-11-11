@@ -159,6 +159,7 @@ dist
 
 # Cypress
 cypress/screenshots
+guide-images
 cypress/downloads
 
 # AI
@@ -170,3 +171,7 @@ tacet-forge-offline.zip
 
 # Tacet Forge updater (scripts/update.mjs); its log goes to logs/
 .dist-before-update/
+
+# wuwalab's published rotations: test material only, never committed (ADR 0047).
+# Fetch with `npm run fixtures:wuwalab`.
+tests/fixtures/frames/reference/

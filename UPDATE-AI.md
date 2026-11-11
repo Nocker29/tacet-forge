@@ -127,6 +127,8 @@ Upstream base: `4d8d068`. For a file's fork changes: `git log --oneline 4d8d068.
 | Import safety | `src/utils/backupValidation.ts`, `settingsBackup.ts` (`prepareImport`, undo), `src/composables/useBackupImport.ts`, `src/utils/safeMode.ts` + `main.ts` startup wrapper, `src/utils/sanitizeHtml.ts` + `v-tooltip` override in `main.ts` | keep: validated, all-or-nothing imports; recovery screen; sanitized tooltip HTML. If upstream changes import code, re-apply the checks |
 | Store actions | `stores/character.js` (`deleteCharacter`), `stores/inventory.js` (protection getters/actions) | additive: keep ours and upstream's |
 | Data / migrations | `src/migrations/index.ts`, `src/migrations/fork.ts`, `src/migrations/fork/*`, `main.ts`, `settingsBackup.ts` | see "Migrations" below |
+| New upstream UI (2026-11 merge) | `src/components/navigation/{navSections.ts,NavRail.vue,NavPhoneHeader.vue,NavUtilityMenu.vue}`, `ThemeOptions.vue`, `buildCard/BuildCardWatermark.vue`, `src/pages/ScannersView.vue`, `src/components/info/InfoGuides.vue`, `src/content/guides/index.ts` | Characters in `MAIN_SECTIONS`; "Tacet Forge" wordmark/titles; no theme list in `ThemeOptions`; no upstream Discord links (fork GitHub instead); Wavescan + screen/video scanner behind `SCANNER_ENABLED` (Scanners page shows only the build card import) |
+| Characters page weapon panel | `src/components/characters/CharacterWeaponPanel.vue` | fork-owned copy of upstream's removed `CalculatorBuildCardWeaponPanel.vue` |
 | Local running / updater | `start.bat`, `scripts/{serve-dist,update,pack-offline}.mjs`, `.gitattributes`, `.gitignore`, this file | fork-only, fixed port 4317 |
 
 Conflict recipes:

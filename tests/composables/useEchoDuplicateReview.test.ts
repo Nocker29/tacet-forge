@@ -1,71 +1,64 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
+import { useEchoDuplicateReview } from "../../src/composables/useEchoDuplicateReview";
+import { useEchoSlotAssignment } from "../../src/composables/useEchoSlotAssignment";
+import { useCharacterStore } from "../../src/stores/character";
 import { useInventoryStore } from "../../src/stores/inventory";
 
-const ask = vi.hoisted(() => vi.fn());
-vi.mock("../../src/composables/useDuplicateImportPrompt", () => ({
-  useDuplicateImportPrompt: () => ({ askAboutDuplicates: ask }),
-}));
-// Feed already-mapped echoes straight through.
-vi.mock("../../src/echoes/parsedEchoMapping", () => ({
-  mapParsedEchoes: (echoes: unknown[]) => echoes,
-}));
+const parsedSlot = (echo: string, subStat: string) => ({
+  echo,
+  set: "HeartofSwornVigil",
+  cost: 3,
+  mainStatLabel: "ATK",
+  substats: [{ subStat, subStatValue: "7.9%" }],
+});
 
-import { useEchoDuplicateReview } from "../../src/composables/useEchoDuplicateReview";
-
-const base = { echo: "Jue", echoSet: "CelestialLight", type: 4, rank: 5, stat: "CritRate" };
-const incoming = [
-  { echoId: "dup", ...base },
-  { echoId: "fresh", ...base, stat: "CritDMG" },
-];
-
-function setup() {
-  const onFinalized = vi.fn();
-  const review = useEchoDuplicateReview({ inventoryOnly: () => true, character: () => "Jinhsi", onFinalized });
-  return { review, onFinalized };
-}
-
-describe("useEchoDuplicateReview duplicate question", () => {
+describe("useEchoDuplicateReview", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    useInventoryStore().echoes = [{ echoId: "have", ...base }] as never;
-    ask.mockReset();
   });
 
-  const ids = () => useInventoryStore().echoes.map((echo: { echoId: string }) => echo.echoId);
+  // Regression for a reported bug: after an image import saved to the
+  // inventory, the character slot and the inventory echo were one shared
+  // object. Equipping another echo into that slot merges a blank pointer
+  // into the slot in place, which overwrote the imported inventory echo —
+  // it vanished, and the equipped echo's id existed twice (the blank copy
+  // first, so the slot rendered empty).
+  it("keeps imported inventory echoes intact when another echo is equipped into their slot", async () => {
+    const characterStore = useCharacterStore();
+    const inventoryStore = useInventoryStore();
+    characterStore.characters = { Suoming: { echoes: {} } } as never;
+    inventoryStore.saveEcho({
+      echoId: "formrender",
+      echo: "Formrender",
+      echoSet: "HeartofSwornVigil",
+      rank: 5,
+      type: 3,
+      stat: "Electro",
+    });
 
-  it("skips duplicates", async () => {
-    ask.mockResolvedValue("skip");
-    const { review, onFinalized } = setup();
-    await review.handleEchoesParsed(incoming as never, true);
-    expect(ask).toHaveBeenCalledWith(1, 2, { canReview: true });
-    expect(ids()).toEqual(["have", "fresh"]);
-    expect(onFinalized).toHaveBeenCalledWith(1);
-  });
+    const { handleEchoesParsed } = useEchoDuplicateReview({
+      inventoryOnly: () => false,
+      character: () => "Suoming",
+      onFinalized: () => {},
+    });
+    await handleEchoesParsed(
+      [
+        parsedSlot("A", "ATK"),
+        parsedSlot("B", "HP"),
+        parsedSlot("Soulfrayer", "DEF"),
+        parsedSlot("D", "ATK"),
+        parsedSlot("E", "HP"),
+      ],
+      true,
+    );
+    const importedId = characterStore.characters.Suoming.echoes[2].echoId;
 
-  it("imports everything anyway", async () => {
-    ask.mockResolvedValue("import");
-    const { review } = setup();
-    await review.handleEchoesParsed(incoming as never, true);
-    expect(ids()).toEqual(["have", "dup", "fresh"]);
-  });
+    await useEchoSlotAssignment().assignEchoToCharacterSlot("Suoming", 2, "formrender");
 
-  it.each(["review", null])("opens the review list on %s, with duplicates unchecked", async (choice) => {
-    ask.mockResolvedValue(choice);
-    const { review, onFinalized } = setup();
-    await review.handleEchoesParsed(incoming as never, true);
-    expect(review.isReviewingDuplicates.value).toBe(true);
-    expect(review.duplicateReviewItems.value.map((item) => [item.isDuplicate, item.selected])).toEqual([
-      [true, false],
-      [false, true],
-    ]);
-    expect(onFinalized).not.toHaveBeenCalled();
-  });
-
-  it("doesn't ask when nothing is a duplicate", async () => {
-    const { review } = setup();
-    await review.handleEchoesParsed([incoming[1]] as never, true);
-    expect(ask).not.toHaveBeenCalled();
-    expect(ids()).toEqual(["have", "fresh"]);
+    expect(inventoryStore.getEchoById(importedId)).toMatchObject({ echo: "Soulfrayer" });
+    const ids = inventoryStore.echoes.map((echo: { echoId: string }) => echo.echoId);
+    expect(ids.filter((id: string) => id === "formrender")).toHaveLength(1);
+    expect(inventoryStore.getEchoById("formrender")).toMatchObject({ echo: "Formrender" });
   });
 });

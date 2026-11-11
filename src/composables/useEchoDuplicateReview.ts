@@ -38,6 +38,8 @@ export function useEchoDuplicateReview(options: {
 
   const isReviewingDuplicates = ref(false);
   const duplicateReviewItems = ref<DuplicateReviewItem[]>([]);
+  /** Every parsed slot, in card order — the review items leave out empty slots, but applying to the character must keep positions. */
+  const reviewEchoes = ref<MappedEcho[]>([]);
   const hasSelectedEchoes = computed(() =>
     duplicateReviewItems.value.some((item) => item.selected),
   );
@@ -45,6 +47,7 @@ export function useEchoDuplicateReview(options: {
   function resetDuplicateReview() {
     isReviewingDuplicates.value = false;
     duplicateReviewItems.value = [];
+    reviewEchoes.value = [];
   }
 
   async function saveSelectedToInventory(
@@ -108,21 +111,19 @@ export function useEchoDuplicateReview(options: {
   }
 
   async function handleApplyToCharacterOnly() {
-    const echoes = duplicateReviewItems.value.map((item) => item.echo);
-    await finalizeImport(echoes, new Set());
+    await finalizeImport(reviewEchoes.value, new Set());
   }
 
   async function handleConfirmDuplicateReview() {
     if (!hasSelectedEchoes.value) {
       return;
     }
-    const echoes = duplicateReviewItems.value.map((item) => item.echo);
     const inventoryEchoIndexes = new Set(
       duplicateReviewItems.value
         .filter((item) => item.selected)
         .map((item) => item.index),
     );
-    await finalizeImport(echoes, inventoryEchoIndexes);
+    await finalizeImport(reviewEchoes.value, inventoryEchoIndexes);
   }
 
   async function handleEchoesParsed(
@@ -137,10 +138,11 @@ export function useEchoDuplicateReview(options: {
       return;
     }
 
+    // Empty slots (no echoId — see mapParsedEchoes) have nothing to review or save.
     const duplicates = findIncomingDuplicates(
       echoes,
       new Set((inventoryStore.echoes ?? []).map(getDuplicateKey)),
-      (echo) => (echo.echo ? getDuplicateKey(echo) : null),
+      (echo) => (echo.echoId && echo.echo ? getDuplicateKey(echo) : null),
     );
     const allIndexes = echoes.map((_, index) => index);
     if (!duplicates.size) {
@@ -149,7 +151,8 @@ export function useEchoDuplicateReview(options: {
     }
 
     // Cancelling the question falls back to the review list, so nothing is lost.
-    const choice = await askAboutDuplicates(duplicates.size, echoes.length, { canReview: true });
+    const reviewable = echoes.filter((echo) => echo.echoId).length;
+    const choice = await askAboutDuplicates(duplicates.size, reviewable, { canReview: true });
     if (choice === "skip") {
       await finalizeImport(echoes, new Set(allIndexes.filter((index) => !duplicates.has(index))));
       return;
@@ -159,12 +162,12 @@ export function useEchoDuplicateReview(options: {
       return;
     }
 
-    duplicateReviewItems.value = echoes.map((echo, index) => ({
-      index,
-      echo,
-      isDuplicate: duplicates.has(index),
-      selected: !duplicates.has(index),
-    }));
+    duplicateReviewItems.value = echoes.flatMap((echo, index) =>
+      echo.echoId
+        ? [{ index, echo, isDuplicate: duplicates.has(index), selected: !duplicates.has(index) }]
+        : [],
+    );
+    reviewEchoes.value = echoes;
     isReviewingDuplicates.value = true;
   }
 

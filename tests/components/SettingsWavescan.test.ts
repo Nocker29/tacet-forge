@@ -4,6 +4,7 @@ import { render, fireEvent, waitFor } from "@testing-library/vue";
 import fixture from "../../fixtures/wavescan.json";
 import SettingsWavescan from "../../src/components/SettingsWavescan.vue";
 import SettingsWorkspace from "../../src/components/SettingsWorkspace.vue";
+import { SETTINGS_SECTIONS } from "../../src/components/navigation/navSections";
 import { useInventoryStore } from "../../src/stores/inventory";
 import { useCharacterStore } from "../../src/stores/character";
 import { getCostByClass, mainEchoesData } from "../../src/echoes";
@@ -305,8 +306,12 @@ describe("SettingsWorkspace — Wavescan section", () => {
 
   // Tacet Forge: the scanner is switched off (src/utils/forkFeatures.ts).
   it("lists Wavescan only while the scanner is enabled", () => {
-    const selector = '[data-test-workspace-nav-mobile-item="wavescan"]';
-    const { container } = render(SettingsWorkspace);
-    expect(container.querySelector(selector) !== null).toBe(SCANNER_ENABLED);
+    const keys = SETTINGS_SECTIONS.groups.flatMap((group) => group.items.map((item) => item.key));
+    expect(keys.includes("wavescan")).toBe(SCANNER_ENABLED);
+  });
+
+  it("shows the Wavescan section only while the scanner is enabled", () => {
+    const { container } = render(SettingsWorkspace, { props: { section: "wavescan" } });
+    expect(container.querySelector("input[type=file]") !== null).toBe(SCANNER_ENABLED);
   });
 });

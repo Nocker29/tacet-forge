@@ -10,9 +10,7 @@
   <CalculatorEchoImporter
     ref="echoesImporter"
     inventory-only></CalculatorEchoImporter>
-  <EchoScannerModal
-    v-if="isEchoScanningEnabled"
-    ref="echoScanner"></EchoScannerModal>
+  <EchoScannerModal v-if="SCANNER_ENABLED" ref="echoScanner"></EchoScannerModal>
   <div class="py-4">
     <div
       class="echoes__header flex flex-wrap items-center justify-between gap-4 mb-4 rounded-lg bg-base-200 p-1 pl-3">
@@ -21,14 +19,15 @@
         <button class="btn btn-sm btn-primary" @click="createEcho">
           Add echo
         </button>
-        <button class="btn btn-sm" @click="handleOpenEchoesImporter">
-          Import echoes
-        </button>
         <button
-          v-if="isEchoScanningEnabled"
+          v-if="SCANNER_ENABLED"
           class="btn btn-sm btn-secondary"
+          data-test-inventory-scan-echoes
           @click="handleOpenEchoScanner">
           Scan echoes
+        </button>
+        <button class="btn btn-sm" @click="handleOpenEchoesImporter">
+          Import echoes
         </button>
         <AppOverflowMenu
           aria-label="More inventory actions"
@@ -50,12 +49,23 @@
       </div>
     </div>
 
+    <!-- Nothing to search or filter yet: the empty state below takes this space. -->
     <AppFilterPanel
+      v-if="!isInventoryEmpty"
       panel-key="inventory-echoes"
       class="mb-6"
       :active-count="activeFilterCount"
       :clear-disabled="!activeFilterCount"
       @clear="resetFilters">
+      <template #bar>
+        <input
+          v-model="search"
+          type="search"
+          placeholder="Search echoes…"
+          class="input input-bordered input-sm flex-1 min-w-40"
+          aria-label="Search echoes"
+          data-test-inventory-echoes-search />
+      </template>
       <!-- Diagnostics: these filter the list too, so they live here instead
            of competing with Add/Import for header space. -->
       <div class="echoes__filters__row flex flex-wrap items-center gap-2">
@@ -136,14 +146,6 @@
           empty-label="Main stat"
           aria-label="Main stat filter"
           class="w-fit min-w-[150px]" />
-        <AppRichSelect
-          v-model="echo"
-          :options="echoSelectOptions"
-          searchable
-          allow-empty
-          empty-label="Echo"
-          aria-label="Echo filter"
-          class="w-fit min-w-[200px]" />
         <AppRichSelect
           v-model:selected-values="substatFilter"
           :options="substatFilterOptions"
@@ -496,7 +498,43 @@
       </div>
     </div>
     <div class="echoes__list">
-      <template v-if="!echoesList.length">
+      <section
+        v-if="isInventoryEmpty"
+        class="bg-base-200 border border-base-content/10 rounded-2xl p-5 sm:p-8 flex flex-col gap-5"
+        data-test-inventory-empty-state>
+        <div class="flex flex-col gap-1">
+          <h2 class="text-xl font-bold">Your inventory is empty</h2>
+          <p>The fastest way to fill it depends on your setup.</p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <RouterLink
+            v-if="SCANNER_ENABLED"
+            :to="{ path: '/scanners', hash: '#wavescan' }"
+            class="inventory-empty__way flex flex-col gap-1.5 p-4 bg-base-100 text-base-content/80 border border-base-content/10 rounded-xl hover:border-primary/60 transition-colors"
+            data-test-inventory-empty-way="wavescan">
+            <span class="flex items-center justify-between gap-2 font-bold text-base-content">Wavescan <GuideChevron /></span>
+            <span class="text-sm">Scans your whole inventory in a few minutes.</span>
+            <span class="badge badge-sm badge-ghost mt-auto">Windows and Mac app</span>
+          </RouterLink>
+          <button
+            v-for="way in emptyInventoryWays"
+            :key="way.id"
+            type="button"
+            class="inventory-empty__way flex flex-col gap-1.5 p-4 bg-base-100 text-base-content/80 text-left border border-base-content/10 rounded-xl hover:border-primary/60 transition-colors"
+            :data-test-inventory-empty-way="way.id"
+            @click="way.open">
+            <span class="flex items-center justify-between gap-2 font-bold text-base-content">{{ way.title }} <GuideChevron /></span>
+            <span class="text-sm">{{ way.body }}</span>
+            <span class="badge badge-sm badge-ghost mt-auto">{{ way.where }}</span>
+          </button>
+        </div>
+        <p>
+          Prefer typing?
+          <button type="button" class="link link-primary" @click="createEcho">Add an echo by hand</button>,
+          or read <RouterLink to="/scanners" class="link link-primary">which scanner fits you</RouterLink>.
+        </p>
+      </section>
+      <template v-else-if="!echoesList.length">
         <div class="echoes__list--empty py-12 text-center w-full">
           No echoes found
           <template v-if="duplicatesFilter">
@@ -724,11 +762,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
+import GuideChevron from "./guides/GuideChevron.vue";
+import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { mainEchoesData } from "../echoes/index.ts";
 
-type MainEchoRow = (typeof mainEchoesData)[keyof typeof mainEchoesData];
 type InventoryEchoRow = {
   echoId: string;
   locked?: boolean;
@@ -785,10 +824,8 @@ import AppRichSelect, {
 import AppOverflowMenu from "./AppOverflowMenu.vue";
 import AppFilterPanel from "./AppFilterPanel.vue";
 import AppBulkActionBar from "./AppBulkActionBar.vue";
-import {
-  buildEchoSelectOptions,
-  buildSimpleSelectOptions,
-} from "../utils/richSelectOptions";
+import { buildSimpleSelectOptions } from "../utils/richSelectOptions";
+import { echoMatchesNameSearch } from "../utils/echoNameSearch";
 import { randomString } from "../utils/strings";
 import {
   findOlderCopies,
@@ -831,11 +868,22 @@ const inventoryEchoEditRef = ref<
   | InstanceType<typeof InventoryEchoEditPanel>
   | null
 >(null);
+const isInventoryEmpty = computed(() => isLiveResultBarEnabled.value && !echoes.value.length);
+
+// What an empty inventory offers (v3). Both scanner modes start from the same dialog.
+// Tacet Forge: the screen/video scanner is off (src/utils/forkFeatures.ts).
+const emptyInventoryWays = [
+  ...(SCANNER_ENABLED
+    ? [
+        { id: "screen-share", title: "Share your screen", body: "Click through your echoes in the game.", where: "PC browser", open: () => handleOpenEchoScanner() },
+        { id: "video", title: "Upload a recording", body: "Record the same clicks, then upload the clip.", where: "Phones and tablets too", open: () => handleOpenEchoScanner() },
+      ]
+    : []),
+  { id: "build-card", title: "Discord build card", body: "Import one character's echoes from the bot's image.", where: "Any device", open: () => handleOpenEchoesImporter() },
+];
+
 const isLiveResultBarEnabled = computed(
   () => isV3UiEnabled(settingsStore),
-);
-const isEchoScanningEnabled = computed(
-  () => SCANNER_ENABLED && (settingsStore.labs?.echoScanning?.isEnabled ?? false),
 );
 const echoesImporter = ref<InstanceType<typeof CalculatorEchoImporter> | null>(
   null,
@@ -843,7 +891,7 @@ const echoesImporter = ref<InstanceType<typeof CalculatorEchoImporter> | null>(
 const echoScanner = ref<InstanceType<typeof EchoScannerModal> | null>(null);
 
 const echoSet = ref<string | null>(null);
-const echo = ref<string | null>(null);
+const search = ref("");
 const costFilter = ref<number | null>(null);
 const mainStatFilter = ref<string | null>(null);
 const lockedFilter = ref(false);
@@ -864,7 +912,7 @@ const hasSelection = computed(() => selectedEchoIds.value.length > 0);
 const activeFilterCount = computed(() => {
   let count = 0;
   if (echoSet.value) count += 1;
-  if (echo.value) count += 1;
+  if (search.value.trim()) count += 1;
   if (costFilter.value) count += 1;
   if (mainStatFilter.value) count += 1;
   if (lockedFilter.value) count += 1;
@@ -982,7 +1030,7 @@ watch(
   [
     mainStatFilter,
     echoSet,
-    echo,
+    search,
     costFilter,
     lockedFilter,
     trashFilter,
@@ -1013,8 +1061,10 @@ const echoesList = computed(() => {
   if (echoSet.value) {
     allEchoes = allEchoes.filter((e) => e.echoSet === echoSet.value);
   }
-  if (echo.value) {
-    allEchoes = allEchoes.filter((e) => e.echo === echo.value);
+  if (search.value.trim()) {
+    allEchoes = allEchoes.filter((e) =>
+      echoMatchesNameSearch(e.echo, search.value),
+    );
   }
   if (costFilter.value) {
     allEchoes = allEchoes.filter((e) => e.type === costFilter.value);
@@ -1101,24 +1151,6 @@ const totalPages = computed(() =>
   Math.ceil(echoesList.value.length / perPage),
 );
 
-const mainEchoesDataComputed = computed(() => ({ ...mainEchoesData }));
-
-const mainEchoOptions = computed(() => {
-  const buckets: Record<MainEchoRow["class"], MainEchoRow[]> = {
-    Calamity: [],
-    Overlord: [],
-    Elite: [],
-    Common: [],
-  };
-  const mainEchoValues = Object.values(mainEchoesDataComputed.value);
-  mainEchoValues.forEach((e) => {
-    if (e?.class && buckets[e.class]) {
-      buckets[e.class].push(e);
-    }
-  });
-  return buckets;
-});
-
 const allMainStats = computed(() => {
   const fourSlotOptions = Object.keys(statsTable["4"]);
   const threeSlotOptions = Object.keys(statsTable["3"]);
@@ -1139,9 +1171,6 @@ const mainStatFilterOptions = computed((): AppRichSelectOption[] =>
   buildSimpleSelectOptions(allMainStats.value, (stat) =>
     getReadableSubStatLabel(String(stat)),
   ),
-);
-const echoSelectOptions = computed((): AppRichSelectOption[] =>
-  buildEchoSelectOptions(mainEchoOptions.value),
 );
 const substatFilterOptions = buildSimpleSelectOptions(subStats, (stat) =>
   getReadableSubStatLabel(String(stat)),
@@ -1209,7 +1238,7 @@ function toggleIncompleteFilter() {
 
 function resetFilters() {
   echoSet.value = null;
-  echo.value = null;
+  search.value = "";
   mainStatFilter.value = null;
   costFilter.value = null;
   lockedFilter.value = false;
@@ -1503,11 +1532,29 @@ function handleOpenEchoesImporter() {
 }
 
 function handleOpenEchoScanner() {
+  if (!SCANNER_ENABLED) return;
   echoScanner.value?.triggerOpenModal();
 }
+
+// The Scanners page links here with ?open=scan or ?open=import to open that
+// tool straight away; the query is dropped so a reload doesn't reopen it.
+const route = useRoute();
+const router = useRouter();
+onMounted(() => {
+  const open = route?.query.open;
+  if (open === "scan") handleOpenEchoScanner();
+  else if (open === "import") handleOpenEchoesImporter();
+  else return;
+  void router?.replace({ query: { ...route.query, open: undefined } });
+});
 </script>
 
 <style lang="scss" scoped>
+// The global a:hover colour would tint the cards' text.
+.inventory-empty__way:hover {
+  color: inherit;
+}
+
 html[data-theme-style="light"] {
   .modal-backdrop {
     opacity: 0.5;

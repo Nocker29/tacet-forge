@@ -129,3 +129,12 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   "Likely older copy" label. **Remove duplicates** offers them separately ("Delete duplicates +
   older copies"); equipped, preset and locked copies are never removed. Imports use the same
   matching.
+- **Merged Wuthering Tools up to `186c54f6`** (34 commits): new side-rail navigation and
+  Info/Guides pages, build card layouts (Columns, Hero, Showcase) with curated art, frame-data
+  rotation timing and DPS, team optimizer (Labs), "Already equipped" labels in optimizer
+  results, echo search box, drag-and-drop echo slots, Suoming presets/rotation, data migration
+  v10 (renames mistyped keys). Adapted for the fork: Characters page added to the new
+  navigation; dark-only theme kept in the new display menu; Tacet Forge name in the nav, build
+  card watermark, credits, legal and privacy pages (no analytics); upstream Discord links
+  replaced with this fork's GitHub; Wavescan and the screen/video scanner stay off (the new
+  Scanners page only offers the Discord build card import); `public/sitemap.xml` stays removed.
