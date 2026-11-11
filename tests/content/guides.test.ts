@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import {
   GUIDES,
   GUIDE_CATEGORIES,
@@ -13,7 +13,8 @@ import { inlineToPlainText, parseInline } from "../../src/content/guides/inline"
 import { getCalculatorSectionFromQuery } from "../../src/components/navigation/navSections";
 
 const mainSource = readFileSync("src/main.ts", "utf8");
-const sitemap = readFileSync("public/sitemap.xml", "utf8");
+// Tacet Forge doesn't ship upstream's sitemap (it points at their domain).
+const sitemap = existsSync("public/sitemap.xml") ? readFileSync("public/sitemap.xml", "utf8") : null;
 const scannersSource = readFileSync("src/pages/ScannersView.vue", "utf8");
 
 function allLinks(): string[] {
@@ -114,7 +115,7 @@ describe("guide content", () => {
     GUIDE_HUB_ENTRIES.forEach((entry) => expect(categories).toContain(entry.category));
   });
 
-  it("lists the hub and every guide in the sitemap", () => {
+  it.skipIf(sitemap === null)("lists the hub and every guide in the sitemap", () => {
     expect(sitemap).toContain("/info/guides</loc>");
     GUIDES.forEach((guide) => expect(sitemap).toContain(`/info/guides/${guide.slug}</loc>`));
   });

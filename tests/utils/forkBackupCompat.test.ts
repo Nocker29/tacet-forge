@@ -131,15 +131,18 @@ describe("profiles and backups from the fork's first release (stamped data versi
     setActivePinia(createPinia());
   });
 
-  it("puts a stored version 10 back to 9 once, so upstream's own 10 will still run", () => {
+  it("puts a stored version 10 back to 9 once, so upstream's own 10 still runs", () => {
     const { character, inventory } = upstreamBackup(false);
     localStorage.setItem(DATA_VERSION_KEY, "10");
     localStorage.setItem("character", JSON.stringify(character));
     localStorage.setItem("inventory", JSON.stringify({ ...inventory, optimizerProtection: { donors: ["Changli"] } }));
     normalizeForkDataVersion();
+    expect(localStorage.getItem(DATA_VERSION_KEY)).toBe("9");
     runMigrations();
     runForkMigrations();
-    expect(localStorage.getItem(DATA_VERSION_KEY)).toBe("9");
+    // Upstream's real v10 (renameMistypedKeys) ran on top.
+    expect(localStorage.getItem(DATA_VERSION_KEY)).toBe(String(CURRENT_DATA_VERSION));
+    expect(CURRENT_DATA_VERSION).toBeGreaterThanOrEqual(10);
     expect(localStorage.getItem(FORK_DATA_VERSION_KEY)).toBe("1");
     expect(JSON.parse(localStorage.getItem("inventory")!).optimizerProtection).toEqual({ donors: ["Changli"] });
 

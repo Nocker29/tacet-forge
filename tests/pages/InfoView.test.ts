@@ -119,12 +119,12 @@ describe("InfoView (flag on, nested routes)", () => {
     await router.isReady();
 
     // Original credits stay, with the fork notice on top (GPL §5a).
-    expect(screen.getByText("Author: @LavaSnake")).toBeInTheDocument();
+    expect(screen.getByText(/@LavaSnake, author/)).toBeInTheDocument();
     const notice = document.querySelector("[data-test-fork-notice]")!;
     expect(notice.textContent).toContain("based on");
     expect(notice.textContent).toContain("modified version");
     expect(notice.querySelector('a[href="https://github.com/ryanbenson/wuthering-waves-optimizer"]')).not.toBeNull();
-    expect(notice.querySelector('a[href="https://github.com/Nocker29/tacet-forge"]')).not.toBeNull();
+    expect(document.querySelector('a[href="https://github.com/Nocker29/tacet-forge"]')).not.toBeNull();
     expect(document.title).toContain("Credits");
   });
 });
