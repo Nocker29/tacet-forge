@@ -15,8 +15,7 @@ import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
 import { useTeamRotationsStore } from "../stores/teamRotations";
 import { randomString } from "./strings";
-import { buildIdentityKeySet, getEchoIdentityKey } from "./echoIdentity";
-import { findIncomingDuplicates } from "../echoes/duplicateCleanup";
+import { findIncomingDuplicates, getDuplicateKey, type EchoFields } from "../echoes/duplicateCleanup";
 import { clearEchoesFromCharacters } from "../echoes/clearEchoes";
 import { checkImportedEcho, checkStoreStates, hasForbiddenKeys } from "./backupValidation";
 import {
@@ -306,8 +305,8 @@ export async function importEchoesFromRaw(
   if (!parsed.length) throw new BackupImportError("No valid echoes found in the list.");
   const duplicates = findIncomingDuplicates(
     parsed,
-    buildIdentityKeySet(inventoryStore.echoes as never[]),
-    (echo) => ((echo as { echo?: unknown })?.echo ? getEchoIdentityKey(echo as never) : null),
+    new Set(((inventoryStore.echoes ?? []) as EchoFields[]).map(getDuplicateKey)),
+    (echo) => ((echo as EchoFields)?.echo ? getDuplicateKey(echo as EchoFields) : null),
   );
   let data = parsed;
   if (duplicates.size) {
