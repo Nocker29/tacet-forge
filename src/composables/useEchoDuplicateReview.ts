@@ -7,7 +7,7 @@
  * detection or the save/apply logic can't drift between the two entry
  * points by only getting made in one of them.
  *
- * Vue-only glue around mapParsedEchoes/getEchoIdentityKey (pure) and the
+ * Vue-only glue around mapParsedEchoes/getDuplicateKey (pure) and the
  * character/inventory stores — no scanner- or parser-specific logic here,
  * both callers feed it the same ParsedEcho[] shape.
  */
@@ -15,8 +15,7 @@ import { computed, ref } from "vue";
 import { mapParsedEchoes, type MappedEcho, type ParsedEcho } from "../echoes/parsedEchoMapping";
 import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
-import { buildIdentityKeySet, getEchoIdentityKey } from "../utils/echoIdentity";
-import { findIncomingDuplicates } from "../echoes/duplicateCleanup";
+import { findIncomingDuplicates, getDuplicateKey } from "../echoes/duplicateCleanup";
 import { useDuplicateImportPrompt } from "./useDuplicateImportPrompt";
 
 export type DuplicateReviewItem = {
@@ -140,8 +139,8 @@ export function useEchoDuplicateReview(options: {
 
     const duplicates = findIncomingDuplicates(
       echoes,
-      buildIdentityKeySet(inventoryStore.echoes),
-      (echo) => (echo.echo ? getEchoIdentityKey(echo) : null),
+      new Set((inventoryStore.echoes ?? []).map(getDuplicateKey)),
+      (echo) => (echo.echo ? getDuplicateKey(echo) : null),
     );
     const allIndexes = echoes.map((_, index) => index);
     if (!duplicates.size) {

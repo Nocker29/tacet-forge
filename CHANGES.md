@@ -119,3 +119,13 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
 - Protected characters only lists characters holding echoes in the optimizer's eligible echo
   sets (all sets when none is picked); the others don't affect the run. Their protected/donor
   state is kept, and Protect all / Unlock all / Invert only change the characters shown.
+
+## 2026-11-11
+
+- **Find duplicates finds more.** Exact duplicates are now matched regardless of substat order,
+  empty vs missing slots and number formatting. It also finds **older copies**: the same echo
+  (echo, set, cost, main stat) whose substats are all included in a more upgraded copy, typically
+  echoes imported before and after upgrading. They're listed next to the upgraded copy with a
+  "Likely older copy" label. **Remove duplicates** offers them separately ("Delete duplicates +
+  older copies"); equipped, preset and locked copies are never removed. Imports use the same
+  matching.

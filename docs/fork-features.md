@@ -65,9 +65,11 @@ history is in [CHANGES.md](../CHANGES.md).
 
 ## Duplicate echoes
 
-- Logic (pure, tested): `src/echoes/duplicateCleanup.ts` — `planDuplicateRemoval` (groups by
-  `getEchoIdentityKey`, the same key as Find duplicates; keeps held/locked copies, else a
-  favorite, else the oldest) and `findIncomingDuplicates` (inventory + repeats in the batch).
+- Logic (pure, tested): `src/echoes/duplicateCleanup.ts` — `getDuplicateKey` (normalized exact
+  key: substat order, empty slots and number formatting don't matter), `findOlderCopies` (same
+  echo/set/cost/rarity/main stat, substats a strict subset of another copy's), `planDuplicateRemoval`
+  (keeps held/locked copies, else a favorite, else the oldest; older copies listed separately and
+  only when free) and `findIncomingDuplicates` (inventory + repeats in the batch).
 - UI: "Remove duplicates" in `InventoryEchoesBrowser.vue` deletes through `removeEchoesFully`
   (clears character slots of deleted echoes; held copies are never in the plan).
 - Import question: `useDuplicateImportPrompt` (built on the new `useConfirm().choose`, a

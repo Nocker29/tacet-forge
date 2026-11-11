@@ -64,7 +64,7 @@
           type="button"
           class="btn btn-sm btn-neutral"
           :class="{ 'btn-active btn-warning': duplicatesFilter }"
-          v-tooltip="'Show only exact duplicate echoes in your inventory'"
+          v-tooltip="'Show exact duplicates and likely older copies (the same echo with fewer upgraded substats)'"
           data-test-find-duplicates
           @click="toggleDuplicatesFilter">
           Find duplicates
@@ -78,7 +78,7 @@
         <button
           type="button"
           class="btn btn-sm btn-neutral"
-          :disabled="!duplicateRemoval.removeIds.length"
+          :disabled="!duplicateRemoval.removeIds.length && !duplicateRemoval.olderIds.length"
           v-tooltip="'Delete extra copies of exact duplicates, keeping one of each (copies on a character, in a preset or locked are always kept)'"
           data-test-remove-duplicates
           @click="removeDuplicates">
@@ -501,7 +501,7 @@
           No echoes found
           <template v-if="duplicatesFilter">
             <div class="mt-2 text-sm opacity-70">
-              No exact duplicate echoes in your inventory.
+              No duplicates or older copies in your inventory.
             </div>
           </template>
           <template v-if="incompleteFilter">
@@ -547,6 +547,13 @@
                   :data-test-echo-select="echoRow.echoId"
                   @change="toggleSelect(echoRow.echoId)" />
               </label>
+              <span
+                v-if="duplicatesFilter && olderCopies.has(echoRow.echoId)"
+                class="absolute top-1 right-1 z-10 badge badge-warning badge-sm shadow"
+                v-tooltip="olderCopyLabel(echoRow.echoId)"
+                data-test-older-copy>
+                Likely older copy
+              </span>
               <!-- The tag opens the echo's odds (the Odds dialog). -->
               <button
                 v-if="unfinishedFilter && unfinishedOdds.get(echoRow.echoId)"
@@ -783,8 +790,13 @@ import {
   buildSimpleSelectOptions,
 } from "../utils/richSelectOptions";
 import { randomString } from "../utils/strings";
-import { getEchoIdentityKey } from "../utils/echoIdentity";
-import { planDuplicateRemoval } from "../echoes/duplicateCleanup";
+import {
+  findOlderCopies,
+  getDuplicateKey,
+  getEchoBaseKey,
+  getSubstatEntries,
+  planDuplicateRemoval,
+} from "../echoes/duplicateCleanup";
 import { useConfirm } from "../composables/useConfirm";
 import { useEchoInventory } from "../composables/useEchoInventory";
 import { useToast } from "../composables/useToast";
@@ -797,7 +809,7 @@ import {
 import { formatTuningChance, type UnfinishedEchoTag } from "../echoes/tuningOdds";
 import TuningGoalEditor from "./TuningGoalEditor.vue";
 
-const { confirm } = useConfirm();
+const { confirm, choose } = useConfirm();
 const { showToast } = useToast();
 const { isCompact } = useUiDensity();
 const {
@@ -882,19 +894,32 @@ const duplicateIdentityCounts = computed(() => {
     if (!inventoryEcho.echo) {
       continue;
     }
-    const key = getEchoIdentityKey(inventoryEcho);
+    const key = getDuplicateKey(inventoryEcho);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   return counts;
 });
 
+// Tacet Forge: older copy echoId -> the more-upgraded copy's echoId (findOlderCopies).
+const olderCopies = computed(() => findOlderCopies((echoes.value ?? []) as InventoryEchoRow[]));
+const newerCopyIds = computed(() => new Set(olderCopies.value.values()));
+
+function isExactDuplicate(e: InventoryEchoRow) {
+  return Boolean(e.echo) && (duplicateIdentityCounts.value.get(getDuplicateKey(e)) ?? 0) > 1;
+}
+
+function olderCopyLabel(echoId: string) {
+  const newerId = olderCopies.value.get(echoId);
+  if (!newerId) return null;
+  const newer = getEchoById(newerId) as InventoryEchoRow | undefined;
+  const count = newer ? getSubstatEntries(newer).length : 0;
+  return `Same echo as one with ${count} substats that include all of these, likely this copy before upgrading.`;
+}
+
 const duplicateEchoCount = computed(() => {
-  let count = 0;
+  let count = olderCopies.value.size;
   for (const inventoryEcho of (echoes.value ?? []) as InventoryEchoRow[]) {
-    if (!inventoryEcho.echo) {
-      continue;
-    }
-    if ((duplicateIdentityCounts.value.get(getEchoIdentityKey(inventoryEcho)) ?? 0) > 1) {
+    if (isExactDuplicate(inventoryEcho)) {
       count += 1;
     }
   }
@@ -1017,12 +1042,16 @@ const echoesList = computed(() => {
       if (!e.echo) {
         return false;
       }
-      return (duplicateIdentityCounts.value.get(getEchoIdentityKey(e)) ?? 0) > 1;
+      return isExactDuplicate(e) || olderCopies.value.has(e.echoId) || newerCopyIds.value.has(e.echoId);
     });
+    // Copies of one echo side by side, most upgraded first.
     allEchoes = allEchoes
       .slice()
-      .sort((a, b) =>
-        getEchoIdentityKey(a).localeCompare(getEchoIdentityKey(b)),
+      .sort(
+        (a, b) =>
+          getEchoBaseKey(a).localeCompare(getEchoBaseKey(b)) ||
+          getSubstatEntries(b).length - getSubstatEntries(a).length ||
+          getDuplicateKey(a).localeCompare(getDuplicateKey(b)),
       );
   }
   if (incompleteFilter.value) {
@@ -1327,29 +1356,53 @@ async function bulkDelete() {
   }
 }
 
-// Extra copies "Remove duplicates" would delete (see planDuplicateRemoval).
+// Copies "Remove duplicates" would delete (see planDuplicateRemoval).
 const duplicateRemoval = computed(() =>
-  planDuplicateRemoval((echoes.value ?? []) as InventoryEchoRow[], getEchoIdentityKey, (echoId) =>
-    inventoryStore.echoHolders.has(echoId),
+  planDuplicateRemoval(
+    (echoes.value ?? []) as InventoryEchoRow[],
+    getDuplicateKey,
+    (echoId) => inventoryStore.echoHolders.has(echoId),
+    olderCopies.value,
   ),
 );
 
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
 async function removeDuplicates() {
-  const { removeIds, groupCount } = duplicateRemoval.value;
-  if (!removeIds.length) return;
-  const copies = `${removeIds.length} extra cop${removeIds.length === 1 ? "y" : "ies"}`;
-  const groups = `${groupCount} duplicate group${groupCount === 1 ? "" : "s"}`;
-  const confirmed = await confirm(
-    `Delete ${copies} from ${groups}? One copy of each stays; copies on a character, in a preset or locked are always kept. This cannot be undone.`,
+  const { removeIds, groupCount, olderIds } = duplicateRemoval.value;
+  if (!removeIds.length && !olderIds.length) return;
+  const exactText = removeIds.length
+    ? `Found ${plural(removeIds.length, "extra copy", "extra copies")} in ${plural(groupCount, "group", "groups")} of exact duplicates (one copy of each stays).`
+    : "";
+  const olderText = olderIds.length
+    ? `Found ${plural(olderIds.length, "older copy", "older copies")}: the same echo with fewer substats than a more upgraded copy, usually imported before upgrading.`
+    : "";
+  // Older copies are opt-in: their own button, never the only default.
+  const choice = await choose<"exact" | "all">(
+    [exactText, olderText, "Copies on a character, in a preset or locked are always kept. This cannot be undone."]
+      .filter(Boolean)
+      .join(" "),
     {
       title: "Remove duplicates",
-      confirmLabel: "Delete",
-      variant: "error",
-      items: removeIds.map((id) => describeEcho(getEchoById(id) ?? {})),
+      items: [...removeIds, ...olderIds].map(
+        (id) => `${describeEcho(getEchoById(id) ?? {})}${olderIds.includes(id) ? " (older copy)" : ""}`,
+      ),
+      choices: [
+        ...(olderIds.length
+          ? [
+              {
+                value: "all" as const,
+                label: removeIds.length ? "Delete duplicates + older copies" : "Delete older copies",
+                variant: "warning" as const,
+              },
+            ]
+          : []),
+        ...(removeIds.length ? [{ value: "exact" as const, label: "Delete exact duplicates", variant: "error" as const }] : []),
+      ],
     },
   );
-  if (!confirmed) return;
-  const { deleted } = await removeEchoesFully(removeIds);
+  if (!choice) return;
+  const { deleted } = await removeEchoesFully(choice === "all" ? [...removeIds, ...olderIds] : removeIds);
   clearSelection();
   showToast(`Removed ${deleted} duplicate echo${deleted === 1 ? "" : "es"}.`, "success");
 }

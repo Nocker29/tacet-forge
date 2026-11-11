@@ -280,11 +280,37 @@ describe("InventoryEchoesBrowser remove duplicates", () => {
 
     await fireEvent.click(container.querySelector("[data-test-remove-duplicates]")!);
     const { confirmRequest, settle } = useConfirm();
-    expect(confirmRequest.value?.message).toContain("Delete 2 extra copies from 1 duplicate group");
+    expect(confirmRequest.value?.message).toContain("Found 2 extra copies in 1 group of exact duplicates");
     expect(confirmRequest.value?.items).toHaveLength(2);
-    settle(true);
+    expect(confirmRequest.value?.choices?.map((choice) => choice.value)).toEqual(["exact"]);
+    settle("exact");
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(inventoryStore.echoes.map((echo: { echoId: string }) => echo.echoId)).toEqual(["worn", "other"]);
+  });
+
+  it("finds older, less upgraded copies and removes them only when asked", async () => {
+    const inventoryStore = useInventoryStore();
+    const fiveSubs = makeCompleteInventoryEcho("upgraded", ELITE_ECHO, 3, "EnergyRegen");
+    const fourSubs = { ...fiveSubs, echoId: "older", echoSubStatsType5: null, echoSubStatsValue5: null };
+    inventoryStore.echoes = [fourSubs, fiveSubs, makeCompleteInventoryEcho("other", COMMON_ECHO, 1, "ATK")];
+    const { container } = renderBrowser();
+
+    await fireEvent.click(container.querySelector("[data-test-find-duplicates]")!);
+    const cards = [...container.querySelectorAll("[data-test-echo-select]")].map((box) => box.getAttribute("data-test-echo-select"));
+    expect(cards).toEqual(["upgraded", "older"]);
+    expect(container.querySelectorAll("[data-test-older-copy]")).toHaveLength(1);
+
+    await fireEvent.click(container.querySelector("[data-test-remove-duplicates]")!);
+    const { confirmRequest, settle } = useConfirm();
+    expect(confirmRequest.value?.choices?.map((choice) => choice.value)).toEqual(["all"]);
+    settle(null as never); // cancel: nothing removed
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(inventoryStore.echoes).toHaveLength(3);
+
+    await fireEvent.click(container.querySelector("[data-test-remove-duplicates]")!);
+    settle("all");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(inventoryStore.echoes.map((echo: { echoId: string }) => echo.echoId)).toEqual(["upgraded", "other"]);
   });
 });
