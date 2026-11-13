@@ -104,7 +104,8 @@ npm run build                                       # must pass without SCANNER_
    you adapted>".
 7. Push the branch, open a PR to `master` (summary of upstream changes, review notes, test
    results), merge it, then `git switch master && git pull --ff-only` and `npm run build`.
-8. Tell the owner (Polish, 2–4 sentences): what came in (new characters/weapons/sets), anything
+8. Refresh the knowledge graph: `C:/Users/Mateusz/.local/bin/graphify.exe update .` (code-only, free; see CLAUDE.md).
+9. Tell the owner (Polish, 2–4 sentences): what came in (new characters/weapons/sets), anything
    adapted, and "uruchom start.bat / odśwież http://localhost:4317 (Ctrl+F5)".
 
 ## 6. Where the fork differs (conflicts happen here)

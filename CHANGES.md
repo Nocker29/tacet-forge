@@ -138,3 +138,9 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   card watermark, credits, legal and privacy pages (no analytics); upstream Discord links
   replaced with this fork's GitHub; Wavescan and the screen/video scanner stay off (the new
   Scanners page only offers the Discord build card import); `public/sitemap.xml` stays removed.
+
+## 2026-11-13
+
+- Local **project knowledge graph** (graphify, code-only): `graphify-out/` (not in git), opened with
+  `Pokaz graf projektu.bat`. `start.bat`'s updater refreshes it after installing an update, and
+  CLAUDE.md / UPDATE-AI.md tell an AI assistant to refresh it after merged PRs.

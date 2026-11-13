@@ -1,0 +1,17 @@
+# build environments / outputs
+node_modules/
+dist/
+logs/
+.dist-before-update/
+graphify-out/
+.claude/
+cypress/screenshots/
+cypress/videos/
+# large generated or binary data (no value as graph nodes)
+public/
+eng.traineddata
+tacet-forge-offline.zip
+fixtures/
+tests/fixtures/
+**/__snapshots__/
+**/frames.ts

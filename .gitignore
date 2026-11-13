@@ -175,3 +175,6 @@ tacet-forge-offline.zip
 # wuwalab's published rotations: test material only, never committed (ADR 0047).
 # Fetch with `npm run fixtures:wuwalab`.
 tests/fixtures/frames/reference/
+
+# graphify knowledge graph (local, rebuilt with `graphify update .`)
+graphify-out/
