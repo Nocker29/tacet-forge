@@ -106,6 +106,7 @@ Optimizer: main thread builds OptimizerContext
 
 This checkout is **Tacet Forge**, a fork of Wuthering Tools (upstream commit `4d8d068`). Rules for work in the fork, on top of everything above:
 
+- **Knowledge graph (graphify).** `graphify-out/` (gitignored) holds a code graph of this repo: `graph.json`, `graph.html` (open with `Pokaz graf projektu.bat`), `GRAPH_REPORT.md`. The CLI isn't on PATH: `C:/Users/Mateusz/.local/bin/graphify.exe` (below: `graphify`). For codebase questions try `graphify query "<question>"`, `graphify path "<A>" "<B>"` or `graphify explain "<X>"` before broad searching. Keep it current but cheap: after a merged PR or a larger change (new module, moved/renamed code), run `graphify update .` once (code-only, no API cost, ~30 s); don't run it after every small edit. Excludes are in `.graphifyignore`. `start.bat`'s updater refreshes it after installing an update.
 - **Updating from upstream / merging:** follow [UPDATE-AI.md](UPDATE-AI.md) (remotes, merge procedure, conflict areas, migration numbering). Work on `master`; `start.bat` runs `scripts/update.mjs` there.
 
 - **Licence.** `LICENSE` (GPL-3.0) stays unchanged. Keep the original credits in `src/components/info/InfoCredits.vue` and the "based on Wuthering Tools" notice. Every user-visible change gets a dated entry in `CHANGES.md` (GPL §5a). Fork identity/links live in `src/utils/forkInfo.ts` (`FORK_REPO_URL` = github.com/Nocker29/tacet-forge, remote `origin`; `upstream` is fetch-only).

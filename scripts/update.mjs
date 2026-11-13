@@ -24,6 +24,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { createInterface } from "node:readline/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -104,6 +105,18 @@ function restoreDist() {
   if (!existsSync(DIST_BACKUP)) return;
   rmSync(DIST, { recursive: true, force: true });
   renameSync(DIST_BACKUP, DIST);
+}
+
+/**
+ * Refreshes the local knowledge graph (graphify-out/, see CLAUDE.md) when
+ * graphify is installed. Code-only extraction: no API cost, ~30 s. Never
+ * fails the update.
+ */
+function refreshGraph() {
+  const exe = join(homedir(), ".local", "bin", process.platform === "win32" ? "graphify.exe" : "graphify");
+  if (!existsSync(exe)) return;
+  console.log("  • odświeżanie grafu projektu…");
+  if (!run("graf projektu", `"${exe}" update .`)) log("graphify update failed (ignored)");
 }
 
 function rollback(startSha, lockChanged, reason) {
@@ -197,6 +210,7 @@ function install(startSha) {
   if (!run("budowanie", commands.build)) return rollback(startSha, lockChanged, "budowanie się nie udało");
 
   rmSync(DIST_BACKUP, { recursive: true, force: true });
+  refreshGraph();
   console.log("");
   console.log("Aktualizacja zakończona.");
   console.log("");
