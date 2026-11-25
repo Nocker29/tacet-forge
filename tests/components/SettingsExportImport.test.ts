@@ -5,6 +5,15 @@ import SettingsExport from "../../src/components/SettingsExport.vue";
 import SettingsImport from "../../src/components/SettingsImport.vue";
 import { useTeamRotationsStore } from "../../src/stores/teamRotations";
 import { CURRENT_DATA_VERSION, DATA_VERSION_KEY } from "../../src/migrations";
+import { useConfirm } from "../../src/composables/useConfirm";
+
+/** Import now shows a preview first (useBackupImport); accept it. */
+async function acceptImportPreview() {
+  const { confirmRequest, settle } = useConfirm();
+  expect(confirmRequest.value?.title).toBe("Import preview");
+  settle(true);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 describe("Settings export/import — whole-database round trip", () => {
   beforeEach(() => {
@@ -99,6 +108,7 @@ describe("Settings export/import — whole-database round trip", () => {
 
     await fireEvent.update(textarea, JSON.stringify(exportPayload));
     await fireEvent.click(button);
+    await acceptImportPreview();
 
     expect(teamRotationsStore.teams).toHaveLength(1);
     expect(teamRotationsStore.teams[0].name).toBe("Imported Team");
@@ -142,6 +152,7 @@ describe("Settings export/import — whole-database round trip", () => {
 
     await fireEvent.update(textarea, JSON.stringify(legacyPayload));
     await fireEvent.click(button);
+    await acceptImportPreview();
 
     // A legacy export simply says nothing about teams — hardSetState's
     // `data?.teams ?? []` fallback means it's treated as "no teams", not

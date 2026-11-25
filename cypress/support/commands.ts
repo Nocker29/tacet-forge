@@ -9,6 +9,8 @@ Cypress.Commands.add("importCharacterData", (data: object) => {
     .trigger("input")
     .trigger("change");
   cy.get("[data-test-import-raw-button]").click();
+  // Import shows a preview of the changes first (useBackupImport).
+  cy.contains("button", "Overwrite my data").click();
   // Import shows a toast, then reloads after 1500ms.
   cy.wait(2000);
 });

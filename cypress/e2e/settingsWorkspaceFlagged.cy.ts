@@ -79,6 +79,8 @@ describe("Settings Workspace (v3 UI)", () => {
 
     cy.get("[data-test-import-raw-text]").invoke("val", payload).trigger("input");
     cy.get("[data-test-import-raw-button]").click();
+    cy.contains("Import preview").should("be.visible");
+    cy.contains("button", "Overwrite my data").click();
     cy.contains("Your data has been overwritten!").should("be.visible");
   });
 

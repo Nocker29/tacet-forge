@@ -8,6 +8,7 @@ A Wuthering Waves damage calculator and echo optimizer that runs entirely in the
 > What changed in the fork is listed in [CHANGES.md](./CHANGES.md).
 > Updating from upstream: `start.bat` offers updates on launch; the manual procedure for an
 > AI assistant is in [UPDATE-AI.md](./UPDATE-AI.md).
+> **AI agents:** to use the calculator/optimizer on exported data, read [AGENTS.md](./AGENTS.md).
 > Not affiliated with Kuro Games. Non-commercial.
 
 ## UI & Tools
