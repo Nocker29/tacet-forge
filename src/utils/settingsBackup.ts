@@ -11,6 +11,7 @@
  *
  * On import we apply pending transforms from meta.version, then mark current.
  */
+import { findLowLevelEchoes, type LowLevelEchoes } from "../echoes/echoLevel";
 import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
 import { useTeamRotationsStore } from "../stores/teamRotations";
@@ -289,7 +290,10 @@ export async function importEchoesFromRaw(
   inventoryStore: ReturnType<typeof useInventoryStore>,
   decideDuplicates: (duplicateCount: number, totalCount: number) => Promise<"skip" | "import" | null> = async () =>
     "import",
-): Promise<{ imported: number; skipped: number; invalid: number } | null> {
+  /** Asked first, before duplicates, when some echoes are below level 25. */
+  decideLowLevel: (lowLevel: LowLevelEchoes, totalCount: number) => Promise<"skip" | "import" | null> = async () =>
+    "import",
+): Promise<{ imported: number; skipped: number; lowLevelSkipped: number; invalid: number } | null> {
   const normalized = applyMigrationTransforms(rawText);
   let list: unknown;
   try {
@@ -303,16 +307,24 @@ export async function importEchoesFromRaw(
   const parsed = list.filter((echo, index) => checkImportedEcho(echo, `#${index + 1}`).ok);
   const invalid = list.length - parsed.length;
   if (!parsed.length) throw new BackupImportError("No valid echoes found in the list.");
+  let candidates = parsed;
+  const lowLevel = findLowLevelEchoes(parsed as Record<string, unknown>[]);
+  if (lowLevel.indexes.size) {
+    const choice = await decideLowLevel(lowLevel, parsed.length);
+    if (choice == null) return null;
+    if (choice === "skip") candidates = parsed.filter((_, index) => !lowLevel.indexes.has(index));
+  }
+  const lowLevelSkipped = parsed.length - candidates.length;
   const duplicates = findIncomingDuplicates(
-    parsed,
+    candidates,
     new Set(((inventoryStore.echoes ?? []) as EchoFields[]).map(getDuplicateKey)),
     (echo) => ((echo as EchoFields)?.echo ? getDuplicateKey(echo as EchoFields) : null),
   );
-  let data = parsed;
+  let data = candidates;
   if (duplicates.size) {
-    const choice = await decideDuplicates(duplicates.size, parsed.length);
+    const choice = await decideDuplicates(duplicates.size, candidates.length);
     if (choice == null) return null;
-    if (choice === "skip") data = parsed.filter((_, index) => !duplicates.has(index));
+    if (choice === "skip") data = candidates.filter((_, index) => !duplicates.has(index));
   }
   let amount = 0;
   for (const echo of data) {
@@ -328,7 +340,7 @@ export async function importEchoesFromRaw(
     await inventoryStore.saveEcho(echoItem as never);
     amount++;
   }
-  return { imported: amount, skipped: parsed.length - amount, invalid };
+  return { imported: amount, skipped: candidates.length - amount, lowLevelSkipped, invalid };
 }
 
 /**

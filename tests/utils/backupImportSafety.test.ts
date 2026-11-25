@@ -152,7 +152,7 @@ describe("Import echoes safety", () => {
       { noEcho: true },
     ]);
     const result = await importEchoesFromRaw(raw, useInventoryStore());
-    expect(result).toEqual({ imported: 1, skipped: 0, invalid: 4 });
+    expect(result).toEqual({ imported: 1, skipped: 0, lowLevelSkipped: 0, invalid: 4 });
     const echoes = useInventoryStore().echoes as Array<{ echoId: string; stat: string }>;
     expect(echoes).toHaveLength(2);
     expect(echoes.find((e) => e.echoId === "old")?.stat).toBe("CritRate");
