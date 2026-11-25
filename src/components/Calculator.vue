@@ -1534,7 +1534,7 @@ export default defineComponent({
         mainEchoStats,
         target,
         damageType,
-        ignoreOtherResonantorEchoes,
+        _ignoreOtherResonantorEchoes,
         loadoutFormat,
       ];
       pendingOptimizerSnapshot = createOptimizerRunSnapshot(
