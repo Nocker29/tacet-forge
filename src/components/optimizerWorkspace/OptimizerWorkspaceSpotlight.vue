@@ -4,7 +4,29 @@
       <span class="badge" :class="rank === 0 ? 'badge-primary' : ''">
         Loadout #{{ rank + 1 }}{{ rank === 0 ? " · Best overall" : "" }}
       </span>
+      <div v-if="isEquipped" class="flex flex-wrap items-center justify-end gap-2">
+        <button
+          v-if="hasBuffChanges"
+          type="button"
+          class="btn btn-sm btn-outline"
+          v-tooltip="'Turn on the main echo buff and set effects this result used, so your build\'s numbers match'"
+          @click="syncBuffs"
+          data-test-loadout-sync-buffs>
+          Use optimizer buffs
+        </button>
+        <span v-tooltip="'These echoes are already equipped on this resonator, with the same main echo'">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            disabled
+            data-test-optimizer-workspace-equip-btn
+            data-test-loadout-equipped>
+            Already equipped
+          </button>
+        </span>
+      </div>
       <button
+        v-else
         class="btn btn-primary btn-sm"
         @click="equipLoadout"
         data-test-optimizer-workspace-equip-btn>
@@ -93,7 +115,8 @@
           :total-def="totalDef"
           :total-crit-rate="totalCritRate"
           :total-crit-dmg="totalCritDmg"
-          :energy-regen="energyRegen"></OptimizerWorkspaceResultHighlights>
+          :energy-regen="energyRegen"
+          :current-stat-parts="currentStatParts"></OptimizerWorkspaceResultHighlights>
         <CalculatorOptimizerResultStats
           v-if="showFullStats"
           :character-element="characterElement"
@@ -104,6 +127,7 @@
           :total-crit-rate="totalCritRate"
           :total-crit-dmg="totalCritDmg"
           :energy-regen="energyRegen"
+          :current-stat-parts="currentStatParts"
           :target-value="targetValue"></CalculatorOptimizerResultStats>
       </div>
     </div>
@@ -111,6 +135,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CurrentStatParts } from "../../utils/statDeltas";
 import { computed, ref } from "vue";
 import CalculatorOptimizerResultLoadoutEcho from "../CalculatorOptimizerResultLoadoutEcho.vue";
 import OptimizerLoadoutDonors from "../OptimizerLoadoutDonors.vue";
@@ -124,6 +149,8 @@ import { sortLoadoutForDisplay } from "./optimizerLoadoutSort";
 import { buildCharacterBuffUpdatesFromOptimizer } from "../../calculator/syncOptimizerBuffs";
 import { useCharacterStore } from "../../stores/character";
 import { useInventoryStore } from "../../stores/inventory";
+import { useLoadoutEquipped } from "../../composables/useEchoEquippedBy";
+import { useOptimizerBuffSync } from "../../composables/useOptimizerBuffSync";
 
 defineOptions({ name: "OptimizerWorkspaceSpotlight" });
 
@@ -143,6 +170,7 @@ const props = withDefaults(
     totalCritRate: number;
     totalCritDmg: number;
     energyRegen: number;
+    currentStatParts?: CurrentStatParts | null;
   }>(),
   {
     loadout: () => [],
@@ -198,13 +226,19 @@ const finalStats = computed(
   () => (context.value.finalStats ?? {}) as Record<string, number> & { totalCritDMG?: number },
 );
 
-async function equipLoadout() {
-  const echoIds = props.loadout.map(
-    (echo) => (echo as { echoId?: string } | undefined)?.echoId,
-  );
+const loadoutEchoIds = computed(() =>
+  props.loadout.map((echo) => (echo as { echoId?: string } | undefined)?.echoId),
+);
+const isEquipped = useLoadoutEquipped(loadoutEchoIds, () => props.character);
+const { hasBuffChanges, syncBuffs } = useOptimizerBuffSync(
+  () => props.character,
+  () => props.loadout as Array<{ echo?: string; echoId?: string }>,
+);
 
+async function equipLoadout() {
+  if (isEquipped.value) return;
   characterStore.applyEchoLoadout(props.character, {
-    echoIds,
+    echoIds: loadoutEchoIds.value,
     presetId: null,
     fillSlots: props.loadout.length,
   });

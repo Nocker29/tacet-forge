@@ -1,5 +1,6 @@
 <template>
   <div class="flex flex-col gap-4" data-test-optimizer-workspace-results>
+    <OptimizerStaleResultsAlert v-if="resultsStale" @rerun="emit('rerun')" />
     <div class="bg-base-200 rounded-xl p-4 flex flex-col gap-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="text-xs font-bold uppercase tracking-wider opacity-50">
@@ -41,12 +42,10 @@
             {{ targetLabel }}
           </div>
           <div class="font-mono font-bold text-sm shrink-0">{{ formatValue(row.targetValue) }}</div>
-          <div
+          <AppDeltaPercent
             v-if="rowDelta(row) !== null"
-            class="font-mono text-xs font-bold shrink-0 w-16 text-right"
-            :class="rowDelta(row)! >= 0 ? 'text-success' : 'text-error'">
-            {{ rowDelta(row)! >= 0 ? "+" : "" }}{{ displayPercentage(rowDelta(row)!) }}
-          </div>
+            :value="rowDelta(row)!"
+            class="font-mono text-xs font-bold shrink-0 w-16 text-right" />
         </button>
       </div>
     </div>
@@ -66,17 +65,21 @@
       :total-crit-rate="totalCritRate"
       :total-crit-dmg="totalCritDmg"
       :energy-regen="energyRegen"
+      :current-stat-parts="currentStatParts"
       :target-type="targetType"
       :target-value="targetValue"></OptimizerWorkspaceSpotlight>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { CurrentStatParts } from "../../utils/statDeltas";
+import AppDeltaPercent from "../AppDeltaPercent.vue";
+import OptimizerStaleResultsAlert from "../OptimizerStaleResultsAlert.vue";
 import { computed, ref, watch } from "vue";
 import OptimizerWorkspaceSpotlight from "./OptimizerWorkspaceSpotlight.vue";
 import OptimizerWorkspaceEchoAvatarStack from "./OptimizerWorkspaceEchoAvatarStack.vue";
 import { formatOptimizerElapsed } from "./formatElapsed";
-import { displayInt, displayPercentage } from "../../utils/numbers";
+import { displayInt } from "../../utils/numbers";
 import { formatTargetValue, getTargetLabel } from "./optimizerTargetDisplay";
 import { getResultDeltaPercent, type OptimizerResultRow as DeltaRow } from "./optimizerResultDelta";
 
@@ -96,13 +99,15 @@ const props = withDefaults(
     totalCritRate: number;
     totalCritDmg: number;
     energyRegen: number;
+    currentStatParts?: CurrentStatParts | null;
     totalCombos: number;
     optimizerElapsedMs: number;
+    resultsStale?: boolean;
   }>(),
   { results: () => [] },
 );
 
-const emit = defineEmits<{ "edit-setup": [] }>();
+const emit = defineEmits<{ "edit-setup": []; rerun: [] }>();
 
 type OptimizerResultRow = {
   id: string;

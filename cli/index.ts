@@ -7,6 +7,15 @@ import { runImportFrames } from "./commands/importFrames.js";
 import { runGenerateEchoPreset } from "./commands/generateEchoPreset.js";
 import { runGenerateEnemies, type EnemyGeneratorMode } from "./commands/generateEnemies.js";
 import { runBackfillIcons } from "./commands/backfillIcons.js";
+import { runEditTeamData } from "./commands/editTeamData.js";
+
+function parseIdOption(value: string): number {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error(`--id must be a positive integer, got '${value}'`);
+  }
+  return id;
+}
 
 const program = new Command();
 
@@ -24,10 +33,15 @@ generate
     "--merge-modifiers",
     "When regenerating, update key/name/details from API and keep other entry properties",
   )
-  .action(async (commandOptions: { mergeModifiers?: boolean }) => {
+  .option("--beta", "Use the Beta API without prompting")
+  .option("--no-beta", "Use the live API without prompting")
+  .option("--id <id>", "Character ID to generate, skipping the search prompt", parseIdOption)
+  .action(async (commandOptions: { mergeModifiers?: boolean; beta?: boolean; id?: number }) => {
     try {
       await runGenerateCharacter({
         mergeModifiers: commandOptions.mergeModifiers,
+        beta: commandOptions.beta,
+        id: commandOptions.id,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -39,9 +53,10 @@ generate
 generate
   .command("weapon")
   .description("Scaffold a new weapon file and register it in weapons.ts")
-  .action(async () => {
+  .option("--id <id>", "Weapon ID to generate, skipping the search prompt", parseIdOption)
+  .action(async (commandOptions: { id?: number }) => {
     try {
-      await runGenerateWeapon();
+      await runGenerateWeapon({ id: commandOptions.id });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`Error: ${message}`);
@@ -151,6 +166,25 @@ backfill
     try {
       await runBackfillIcons({ character: commandOptions.character });
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${message}`);
+      process.exit(1);
+    }
+  });
+
+const edit = program.command("edit").description("Edit hand-written data through prompts");
+
+edit
+  .command("team-data")
+  .description(
+    "Report missing Recommended teams data, then fill in teammates' typical buffs and characters' suggested teams",
+  )
+  .action(async () => {
+    try {
+      await runEditTeamData();
+    } catch (error) {
+      // Ctrl-C at a prompt: nothing unsaved is written, so just leave.
+      if (error instanceof Error && error.name === "ExitPromptError") return;
       const message = error instanceof Error ? error.message : String(error);
       console.error(`Error: ${message}`);
       process.exit(1);

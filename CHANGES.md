@@ -144,3 +144,16 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
 - Local **project knowledge graph** (graphify, code-only): `graphify-out/` (not in git), opened with
   `Pokaz graf projektu.bat`. `start.bat`'s updater refreshes it after installing an update, and
   CLAUDE.md / UPDATE-AI.md tell an AI assistant to refresh it after merged PRs.
+
+## 2026-11-25
+
+- **Merged Wuthering Tools up to `ef0f1455`** (25 commits): Version 3.8 with **Lily** and the
+  **Lullaby** pistol (frame data, rotation and echo presets, substat weights), substat roll value
+  in the echo insights, recommended teams with their typical buffs (Labs), optimizer results that
+  show stat changes and flag when the setup changed since the run, pinned attacks, remembered
+  filters, set icons on echo rows, and buff fixes (Sigrika, Sound of True Name). Kept
+  `public/sitemap.xml` removed.
+- Every page title now ends in "Tacet Forge" (upstream's per-page titles named its own site).
+- Phone bottom bar fits all sections in one row (Characters made it wrap "More").
+- Repository files use LF line endings on Windows too (upstream's data generators compare files
+  byte for byte); `.bat` files keep CRLF.

@@ -29,6 +29,16 @@ function setDescription(content: string) {
  * metadata (grep confirms zero prior `document.title` usage) - see
  * docs/adr/0024-info-page-nested-routes-redesign.md.
  */
+/**
+ * Tacet Forge: upstream's page titles end in "— Wuthering Waves Calculator &
+ * Optimizer" (its site name); this fork shows its own name there instead, for
+ * every page, including ones added upstream later.
+ */
+export function brandTitle(title: string): string {
+  if (title.startsWith("Tacet Forge")) return title; // the site-wide title already names the fork
+  return title.replace(/\s+—\s+Wuthering Waves Calculator & Optimizer$/, " — Tacet Forge");
+}
+
 export function useDocumentTitle(
   title: MaybeRefOrGetter<string>,
   description?: MaybeRefOrGetter<string>,
@@ -37,7 +47,7 @@ export function useDocumentTitle(
   let setDescriptionValue: string | null = null;
 
   watchEffect(() => {
-    setTitle = toValue(title);
+    setTitle = brandTitle(toValue(title));
     document.title = setTitle;
 
     const descriptionValue = description ? toValue(description) : undefined;

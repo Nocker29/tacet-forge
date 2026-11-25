@@ -41,3 +41,15 @@ describe("useDocumentTitle", () => {
     expect(document.title).toBe("Credits");
   });
 });
+
+describe("brandTitle (Tacet Forge)", () => {
+  it("swaps upstream's site name for the fork's", async () => {
+    // Imported here: the module reads the base title when it loads.
+    const { brandTitle } = await import("../../src/composables/useDocumentTitle");
+    expect(brandTitle("Echo inventory — Wuthering Waves Calculator & Optimizer")).toBe("Echo inventory — Tacet Forge");
+    expect(brandTitle("Characters — Tacet Forge")).toBe("Characters — Tacet Forge");
+    expect(brandTitle("Tacet Forge — Wuthering Waves Calculator & Optimizer")).toBe(
+      "Tacet Forge — Wuthering Waves Calculator & Optimizer",
+    );
+  });
+});

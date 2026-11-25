@@ -1,1 +1,4 @@
+# Tacet Forge: LF in the working tree everywhere (as upstream, on Linux, generates and
+# compares files), CRLF only for Windows batch files.
+* text=auto eol=lf
 *.bat text eol=crlf
