@@ -79,10 +79,11 @@ history is in [CHANGES.md](../CHANGES.md).
   and doesn't ask.
 - Below-level-25 question, asked **before** the duplicates question (duplicates are then looked
   for among what is left): `src/echoes/echoLevel.ts` + `useLowLevelImportPrompt.ts`, in
-  `importEchoesFromRaw` and `useEchoDuplicateReview`. No import format carries a level (echo JSON
-  lists, Discord build cards and scans have only substats), so an echo with fewer than 5 filled
-  substats counts as below 25 and the dialog says the level is inferred; a numeric `level` field
-  wins if present. Skip / Import anyway / Cancel (cancel imports nothing). On a card import, skipped
+  `importEchoesFromRaw` and `useEchoDuplicateReview`. Only an explicit level counts (`level`,
+  `lvl` or `echoLevel` below 25); the substat count is never used, because scanner exports have
+  level-25 echoes with 4 substats on purpose. Today's formats carry no level (echo JSON lists incl.
+  wuwa-echo-scanner's Wuthering Tools export, Discord build cards, scans), so they never trigger it.
+  Skip / Import anyway / Cancel (cancel imports nothing). On a card import, skipped
   echoes still fill their slot on the character but aren't saved to the inventory.
 
 ## Settings: delete all echoes, load import file
