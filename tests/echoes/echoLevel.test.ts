@@ -1,36 +1,39 @@
 import { describe, it, expect } from "vitest";
-import { filledSubstatCount, findLowLevelEchoes, isBelowMaxLevel } from "../../src/echoes/echoLevel";
+import { echoLevel, findLowLevelEchoes, isBelowMaxLevel } from "../../src/echoes/echoLevel";
 
-const subs = (count: number) =>
-  Object.fromEntries(
-    Array.from({ length: 5 }, (_, i) => [
-      [`echoSubStatsType${i + 1}`, i < count ? "ATK" : "none"],
-      [`echoSubStatsValue${i + 1}`, i < count ? 10 : 0],
-    ]).flat(),
-  );
+// Scanner exports: level-25 echoes with 4 substats and no level field.
+const fourSubstats = {
+  echo: "Hyvatia",
+  echoSubStatsType1: "DEF_FLAT",
+  echoSubStatsValue1: 60,
+  echoSubStatsType2: "CritDMG",
+  echoSubStatsValue2: 15,
+  echoSubStatsType3: "HP_FLAT",
+  echoSubStatsValue3: 390,
+  echoSubStatsType4: "BasicAttackDMGBonus",
+  echoSubStatsValue4: 9.4,
+  echoSubStatsType5: null,
+  echoSubStatsValue5: null,
+};
 
 describe("echo level", () => {
-  it("infers it from the substats unless the data has a level", () => {
-    expect(filledSubstatCount(subs(4))).toBe(4);
-    expect(isBelowMaxLevel(subs(5))).toBe(false);
-    expect(isBelowMaxLevel(subs(4))).toBe(true);
-    expect(isBelowMaxLevel({})).toBe(true);
-    expect(isBelowMaxLevel({ ...subs(5), level: 20 })).toBe(true);
-    expect(isBelowMaxLevel({ ...subs(3), level: "25" })).toBe(false);
+  it("only an explicit level counts, never the substat count", () => {
+    expect(isBelowMaxLevel(fourSubstats)).toBe(false);
+    expect(isBelowMaxLevel({})).toBe(false);
+    expect(isBelowMaxLevel({ ...fourSubstats, level: 20 })).toBe(true);
+    expect(isBelowMaxLevel({ ...fourSubstats, level: 25 })).toBe(false);
+    expect(isBelowMaxLevel({ lvl: "15" })).toBe(true);
+    expect(isBelowMaxLevel({ echoLevel: 24 })).toBe(true);
+    expect(echoLevel({ level: "" })).toBeNull();
+    expect(echoLevel({ level: "abc" })).toBeNull();
   });
 
-  it("groups the low ones for the dialog", () => {
+  it("groups the low ones by level for the dialog", () => {
     const result = findLowLevelEchoes(
-      [subs(5), subs(4), subs(4), subs(0), { ...subs(5), level: 15 }, { empty: true }],
+      [fourSubstats, { level: 20 }, { level: 20 }, { level: 0 }, { level: 25 }, { empty: true, level: 5 }],
       (echo) => !("empty" in echo),
     );
-    expect(result.indexes).toEqual(new Set([1, 2, 3, 4]));
-    expect(result.inferred).toBe(true);
-    expect(result.breakdown).toEqual([
-      "1 at level 15",
-      "2 with 4 substats (level 20–24)",
-      "1 with 0 substats (level 0–4)",
-    ]);
-    expect(findLowLevelEchoes([{ ...subs(5), level: 10 }]).inferred).toBe(false);
+    expect(result.indexes).toEqual(new Set([1, 2, 3]));
+    expect(result.breakdown).toEqual(["2 at level 20", "1 at level 0"]);
   });
 });

@@ -10,7 +10,8 @@ const full = Object.fromEntries(
   ]),
 );
 const base = { echo: "Jue", echoSet: "CelestialLight", type: 4, rank: 5, stat: "CritRate", ...full };
-const fourSubstats = { echoSubStatsType5: "none", echoSubStatsValue5: 0 };
+const fourSubstats = { echoSubStatsType5: null, echoSubStatsValue5: null };
+const level20 = { level: 20 };
 
 describe("importEchoesFromRaw duplicate handling", () => {
   beforeEach(() => {
@@ -53,8 +54,8 @@ describe("importEchoesFromRaw below-level-25 echoes", () => {
     useInventoryStore().echoes = [{ echoId: "have", ...base }] as never;
   });
 
-  // A full copy of "have", a 4-substat copy of "have", and a new full echo.
-  const raw = JSON.stringify([base, { ...base, ...fourSubstats }, { ...base, stat: "ATK" }]);
+  // A full copy of "have", a level-20 copy of "have", and a new echo.
+  const raw = JSON.stringify([base, { ...base, ...level20 }, { ...base, stat: "ATK" }]);
 
   it("asks about level first, then about duplicates among what is left", async () => {
     const order: string[] = [];
@@ -62,7 +63,7 @@ describe("importEchoesFromRaw below-level-25 echoes", () => {
     const decideDuplicates = vi.fn(async () => (order.push("duplicates"), "skip" as const));
     const result = await importEchoesFromRaw(raw, useInventoryStore(), decideDuplicates, decideLevel);
     expect(order).toEqual(["level", "duplicates"]);
-    expect(decideLevel.mock.calls[0][0]).toMatchObject({ indexes: new Set([1]), inferred: true });
+    expect(decideLevel.mock.calls[0][0]).toMatchObject({ indexes: new Set([1]), breakdown: ["1 at level 20"] });
     expect(decideLevel.mock.calls[0][1]).toBe(3);
     expect(decideDuplicates).toHaveBeenCalledWith(1, 2);
     expect(result).toEqual({ imported: 1, skipped: 1, lowLevelSkipped: 1, invalid: 0 });
@@ -71,7 +72,7 @@ describe("importEchoesFromRaw below-level-25 echoes", () => {
   it("imports them when told to (they can still be duplicates)", async () => {
     const decideDuplicates = vi.fn(async () => "import" as const);
     const result = await importEchoesFromRaw(raw, useInventoryStore(), decideDuplicates, async () => "import");
-    expect(decideDuplicates).toHaveBeenCalledWith(1, 3);
+    expect(decideDuplicates).toHaveBeenCalledWith(2, 3);
     expect(result).toEqual({ imported: 3, skipped: 0, lowLevelSkipped: 0, invalid: 0 });
   });
 
@@ -83,13 +84,15 @@ describe("importEchoesFromRaw below-level-25 echoes", () => {
   });
 
   it("skipping when every echo is below 25 imports nothing", async () => {
-    const result = await importEchoesFromRaw(JSON.stringify([{ ...base, ...fourSubstats }]), useInventoryStore(), vi.fn(), async () => "skip");
+    const result = await importEchoesFromRaw(JSON.stringify([{ ...base, ...level20 }]), useInventoryStore(), vi.fn(), async () => "skip");
     expect(result).toEqual({ imported: 0, skipped: 0, lowLevelSkipped: 1, invalid: 0 });
   });
 
-  it("doesn't ask when every echo is level 25", async () => {
+  it("doesn't ask for level-25 echoes or echoes without a level (4 substats included)", async () => {
     const decideLevel = vi.fn();
-    await importEchoesFromRaw(JSON.stringify([{ ...base, stat: "ATK" }]), useInventoryStore(), vi.fn(), decideLevel);
+    const list = [{ ...base, stat: "ATK", level: 25 }, { ...base, stat: "HP", ...fourSubstats }];
+    const result = await importEchoesFromRaw(JSON.stringify(list), useInventoryStore(), vi.fn(), decideLevel);
     expect(decideLevel).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ imported: 2, lowLevelSkipped: 0 });
   });
 });

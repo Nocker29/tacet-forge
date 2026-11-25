@@ -15,11 +15,8 @@ export function useLowLevelImportPrompt() {
   function askAboutLowLevel(lowLevel: LowLevelEchoes, totalCount: number): Promise<LowLevelImportChoice | null> {
     const count = lowLevel.indexes.size;
     const one = count === 1;
-    const note = lowLevel.inferred
-      ? " The level is inferred from the substats: an echo has all 5 only at level 25."
-      : "";
     return choose<LowLevelImportChoice>(
-      `${count} of ${totalCount} imported echoes ${one ? "is" : "are"} below level 25. Import ${one ? "it" : "them"} anyway?${note}`,
+      `${count} of ${totalCount} imported echoes ${one ? "is" : "are"} below level 25. Import ${one ? "it" : "them"} anyway?`,
       {
         title: `${count} echo${one ? "" : "es"} below level 25`,
         items: lowLevel.breakdown,

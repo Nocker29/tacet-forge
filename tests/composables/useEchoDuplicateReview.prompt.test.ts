@@ -90,8 +90,8 @@ describe("useEchoDuplicateReview below-level-25 question", () => {
   });
 
   const ids = () => useInventoryStore().echoes.map((echo: { echoId: string }) => echo.echoId);
-  // "low" copies "have" but has only 4 substats; "dup" is a full copy of "have".
-  const lowLevel = { echoId: "low", ...base, echoSubStatsType5: "none", echoSubStatsValue5: 0 };
+  // "low" copies "have" but is level 20; "dup" is a copy of "have".
+  const lowLevel = { echoId: "low", ...base, level: 20 };
   const list = [{ echoId: "dup", ...base }, lowLevel, { echoId: "fresh", ...base, stat: "CritDMG" }];
 
   it("asks about level first, then about duplicates among what is left", async () => {
@@ -112,7 +112,7 @@ describe("useEchoDuplicateReview below-level-25 question", () => {
     askLevel.mockResolvedValue("import");
     ask.mockResolvedValue("skip");
     const { review } = setup();
-    await review.handleEchoesParsed([lowLevel] as never, true);
+    await review.handleEchoesParsed([{ ...lowLevel, stat: "HP" }] as never, true);
     expect(ask).not.toHaveBeenCalled();
     expect(ids()).toEqual(["have", "low"]);
   });
