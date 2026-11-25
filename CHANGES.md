@@ -159,3 +159,9 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   byte for byte); `.bat` files keep CRLF.
 - Fixed "Run Optimizer" doing nothing after the merge (the new re-run support referenced the
   removed "ignore other resonators' echoes" setting).
+- **Agent tool**: AI agents (Claude Code, Codex, Gemini CLI, MCP clients…) can run the app's
+  calculator and optimizer on an exported backup: `node scripts/agent.mjs` or the MCP server
+  `npm run mcp`. Start at [AGENTS.md](./AGENTS.md). Results are saved as a new build in a new backup
+  file; the input file is never changed.
+- **Import preview**: "Import & overwrite" first lists what the backup changes (characters, builds,
+  echoes, teams) and asks before replacing your data.

@@ -228,8 +228,8 @@ function downloadCharacterData() {
   showToast("Character data has been downloaded", "success");
 }
 
-function importRawCharacterData() {
-  if (importBackupText(importedRawCharacterData.value)) importedRawCharacterData.value = "";
+async function importRawCharacterData() {
+  if (await importBackupText(importedRawCharacterData.value)) importedRawCharacterData.value = "";
 }
 
 function handleFileUpload(event: Event) {
@@ -253,8 +253,8 @@ function handleFileUpload(event: Event) {
   }
 }
 
-function confirmUpload() {
-  if (importBackupText(fileData.value)) fileData.value = null;
+async function confirmUpload() {
+  if (await importBackupText(fileData.value)) fileData.value = null;
 }
 
 async function importEchoesAddRaw() {

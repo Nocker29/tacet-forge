@@ -106,3 +106,11 @@ history is in [CHANGES.md](../CHANGES.md).
 - Tooltips: `src/utils/sanitizeHtml.ts`; `main.ts` re-registers `v-tooltip` to sanitize
   `{ content, html: true }` values. `v-html` sites render game data from code, not user data.
 
+- Import preview: `src/utils/importPreview.ts` (`summarizeImport`, `describeImportSummary`);
+  `useBackupImport.importBackupText` prepares the backup, shows the changes in the confirm dialog
+  and applies only after "Overwrite my data". Builds are matched by id, then by name.
+
+## Agent tool
+
+AI agents can run the calculator/optimizer on an exported backup (CLI and MCP server). Entry
+point for agents: [AGENTS.md](../AGENTS.md); internals: [fork-agent.md](fork-agent.md).

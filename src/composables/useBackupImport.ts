@@ -3,8 +3,12 @@
  * Settings import tab — user-facing messages around the checked imports in
  * src/utils/settingsBackup.ts.
  */
+import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
-import { BackupImportError, applyImportedDatabase, importEchoesFromRaw } from "../utils/settingsBackup";
+import { useTeamRotationsStore } from "../stores/teamRotations";
+import { BackupImportError, applyImportedDatabase, importEchoesFromRaw, prepareImport } from "../utils/settingsBackup";
+import { describeImportSummary, summarizeImport } from "../utils/importPreview";
+import { useConfirm } from "./useConfirm";
 import { useDuplicateImportPrompt } from "./useDuplicateImportPrompt";
 import { useToast } from "./useToast";
 
@@ -14,9 +18,34 @@ export function useBackupImport() {
   const { showToast } = useToast();
   const { askAboutDuplicates } = useDuplicateImportPrompt();
   const inventoryStore = useInventoryStore();
+  const { confirm } = useConfirm();
 
-  /** Replaces all data with a backup; reloads on success. Returns whether it was applied. */
-  function importBackupText(text: string | null | undefined): boolean {
+  /**
+   * Replaces all data with a backup after showing what it changes (checked
+   * first, nothing touched until confirmed); reloads on success. Returns
+   * whether it was applied.
+   */
+  async function importBackupText(text: string | null | undefined): Promise<boolean> {
+    let items: string[];
+    try {
+      const summary = summarizeImport(
+        {
+          character: useCharacterStore().$state,
+          inventory: inventoryStore.$state,
+          teamRotations: useTeamRotationsStore().$state,
+        },
+        prepareImport(text ?? ""),
+      );
+      items = describeImportSummary(summary);
+    } catch (error) {
+      showToast(error instanceof BackupImportError ? error.message : `Import failed: ${String(error)}`, "error");
+      return false;
+    }
+    const confirmed = await confirm(
+      "This backup replaces all of your current data. Compared with what you have now:",
+      { title: "Import preview", items, confirmLabel: "Overwrite my data", variant: "error" },
+    );
+    if (!confirmed) return false;
     try {
       const { undoSaved } = applyImportedDatabase(text ?? "");
       showToast(

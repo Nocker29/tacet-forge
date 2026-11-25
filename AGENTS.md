@@ -1,0 +1,114 @@
+# AGENTS.md: using Tacet Forge from an AI agent
+
+**Tacet Forge** is a calculator and echo-loadout optimizer for the game *Wuthering Waves*. It's a
+browser app, but every calculation is plain TypeScript. This folder includes a **command-line tool
+and an MCP server** that run the app's own calculator and optimizer on a user's exported data. You
+don't need to read or understand the app's source to use it.
+
+> Working on the app's code instead? Read [CLAUDE.md](CLAUDE.md). This file is for *using* the tool.
+
+## 1. Setup (once)
+
+- **Node.js 24+** (`node --version`).
+- Dependencies: if there is no `node_modules/` folder, run `npm ci --ignore-scripts` in this
+  folder. It needs no network after that.
+- Run every command **from this folder** (the one containing this file).
+
+## 2. Get the user's data
+
+The tool works on a **backup file** the user exports from the app, never on the browser itself.
+
+- If the user gave you a path to a `.json` backup, use it.
+- Otherwise ask them: *"In Tacet Forge open **Settings → Backup & Restore → Download .json** and
+  tell me where the file is."* Wuthering Tools (wutheringtools.com) backups work too.
+
+## 3. Run commands
+
+```
+node scripts/agent.mjs <command> --data "<path to backup.json>" [--arg value …]
+```
+
+- Output is **one JSON object on stdout**: `{ "ok": true, "command", "result" }` or
+  `{ "ok": false, "error": { "code", "message", "hint" } }`. The exit code is 0 or 1. Logs go to
+  stderr. Read the `hint` on errors.
+- `node scripts/agent.mjs describe` lists every command, argument and output shape.
+  `node scripts/agent.mjs <command> --help` shows one command.
+- Lists are comma-separated (`--sets A,B`). Booleans are bare flags (`--free`). Relative paths
+  resolve from the folder you run in; absolute paths are safest.
+- `npm run --silent agent -- <command> …` works too (without `--silent` npm adds a banner to stdout).
+
+| Command | What it gives you |
+|---|---|
+| `characters` | Saved characters: level, sequence, weapon, builds, saved optimizer settings |
+| `echoes` | Inventory echoes (`--set`, `--cost`, `--main-stat`, `--held-by`, `--free`) with their `echoId` |
+| `stats --character X [--build B]` | Final stats exactly as the app's calculator shows them |
+| `damage --character X [--build B]` | Damage of every attack and every saved rotation (normal / average / crit) |
+| `targets --character X` | Valid `--target` values for `optimize` |
+| `catalog [--what sets\|main-echoes\|substats]` | Keys for echo sets, main echoes, substats |
+| `optimize --character X [options]` | Best echo loadouts by the app's own optimizer |
+| `apply --character X --echoes id1,…` | Saves those echoes as a **new build** in a **new backup file** |
+
+`optimize` starts from the character's **saved optimizer settings** (what the user set in the app).
+Any option overrides them: `--target`, `--sets`, `--main-echoes`, `--min-stat "energyRegen>=120"`,
+`--damage-type Normal|Average|Crit`, `--loadout-format Any|43311|44111`, `--protection app|none`,
+`--top`, `--max-combinations`, `--time-limit`. If nothing is saved, the error tells you which
+option to pass. Stats use the app's units: percents as percents (`energyRegen: 124.4`).
+
+## 4. Typical workflow
+
+1. `characters`: find the character key and their current build.
+2. `stats` and `damage`: the current numbers (they match the app).
+3. `optimize`: read `results[].value`, `echoIds`, `finalStats` and `takesFrom` (echoes it would
+   take from other characters). If `complete` is `false`, the search stopped at `stoppedBy`; say so,
+   or raise `--time-limit`/`--max-combinations`.
+4. Show the user the options. Apply only what they choose:
+   `apply --character X --echoes <echoIds of the result> [--build-name "…"]`.
+   This writes `<input>.agent-<character>-<time>.json` next to the input (or `--out`) and keeps
+   their current build as a separate build.
+5. Tell the user to import it: **Settings → Backup & Restore → Import & overwrite**, pick the new
+   file, check the preview, confirm. **Undo last import** brings back their previous data.
+
+## 5. Rules
+
+- **Never modify the user's input file.** `apply` always writes a new file and refuses to overwrite.
+- **Don't drive the browser or the user's localStorage.** The backup file is the only interface; the
+  user imports results themselves.
+- Don't run `start.bat`, `scripts/update.mjs`, `git pull` or upstream merges; updating the app is the
+  user's call.
+- Report numbers as the tool gives them. Don't recompute them by hand, and say which build and
+  target they're for.
+- The backup contains the user's personal game data. Keep it local and don't upload it anywhere.
+
+## 6. MCP server (optional)
+
+The same commands are available as MCP tools (`tacet_forge_describe`, `tacet_forge_optimize`, …)
+over stdio: `node scripts/agent-mcp.mjs`. Give tools an **absolute** `data` path.
+
+Claude Code (run in this folder):
+
+```
+claude mcp add tacet-forge -- node scripts/agent-mcp.mjs
+```
+
+Claude Desktop / any MCP client (`claude_desktop_config.json` → `mcpServers`), with this folder's
+absolute path:
+
+```json
+{
+  "mcpServers": {
+    "tacet-forge": {
+      "command": "node",
+      "args": ["<absolute path to this folder>/scripts/agent-mcp.mjs"]
+    }
+  }
+}
+```
+
+## 7. How it stays accurate
+
+The tool loads the app's TypeScript through Vite (`scripts/agent-host.mjs`) and calls the same
+functions the app does. It imports backups with the app's validation and migrations, calculates
+through `buildCharacterCalculationContext`/`calcDamages`, and optimizes with the app's processor
+worker. Tests in `tests/agent/` render the app's optimizer screen and compare the inputs it builds.
+They also check that applying the best loadout reproduces the optimizer's value. Details:
+[docs/fork-agent.md](docs/fork-agent.md).
