@@ -35,6 +35,8 @@ node scripts/agent.mjs <command> --data "<path to backup.json>" [--arg value …
   `node scripts/agent.mjs <command> --help` shows one command.
 - Lists are comma-separated (`--sets A,B`). Booleans are bare flags (`--free`). Relative paths
   resolve from the folder you run in; absolute paths are safest.
+- `damage` and `optimize` print a lot: redirect to a file (`> out.json`) and read the fields you
+  need. Windows paths work quoted (`"C:\Users\me\backup.json"`) or with forward slashes.
 - `npm run --silent agent -- <command> …` works too (without `--silent` npm adds a banner to stdout).
 
 | Command | What it gives you |
@@ -52,7 +54,9 @@ node scripts/agent.mjs <command> --data "<path to backup.json>" [--arg value …
 Any option overrides them: `--target`, `--sets`, `--main-echoes`, `--min-stat "energyRegen>=120"`,
 `--damage-type Normal|Average|Crit`, `--loadout-format Any|43311|44111`, `--protection app|none`,
 `--top`, `--max-combinations`, `--time-limit`. If nothing is saved, the error tells you which
-option to pass. Stats use the app's units: percents as percents (`energyRegen: 124.4`).
+option to pass. Stats use the app's units: percents as percents (`energyRegen: 124.4`); zero stats are
+left out. `optimize` returns 5 results by default (`--top`). The current build may not meet the
+saved minimum stats, so mention that when comparing it with an optimized one.
 
 ## 4. Typical workflow
 
@@ -63,8 +67,9 @@ option to pass. Stats use the app's units: percents as percents (`energyRegen: 1
    or raise `--time-limit`/`--max-combinations`.
 4. Show the user the options. Apply only what they choose:
    `apply --character X --echoes <echoIds of the result> [--build-name "…"]`.
-   This writes `<input>.agent-<character>-<time>.json` next to the input (or `--out`) and keeps
-   their current build as a separate build.
+   This writes `<input>.agent-<character>-<UTC time>.json` next to the input (or `--out`); the exact
+   path is `result.out`. The new build becomes the active one (`--keep-active` keeps the current one
+   active); the previous build stays saved.
 5. Tell the user to import it: **Settings → Backup & Restore → Import & overwrite**, pick the new
    file, check the preview, confirm. **Undo last import** brings back their previous data.
 
