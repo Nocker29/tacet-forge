@@ -364,6 +364,10 @@
         </p>
       </template>
     </div>
+    <OptimizerStaleResultsAlert
+      v-if="optimizerResults?.length && resultsStale"
+      class="mt-4"
+      @rerun="emit('optimizer:rerun')" />
     <CalculatorOptimizerResults
       v-if="optimizerResults?.length"
       :character="character"
@@ -376,12 +380,14 @@
       :total-crit-rate="totalCritRate"
       :total-crit-dmg="totalCritDMG"
       :energy-regen="energyRegen"
+      :current-stat-parts="currentStatParts"
       :target-type="optimizationTargetType"
       :target-value="optimizationTargetObject" />
   </div>
 </template>
 
 <script setup lang="ts">
+import type { CurrentStatParts } from "../utils/statDeltas";
 import { computed, onMounted, reactive, ref } from "vue";
 import { echoSetLabelMap, getEchoSetIconByType, getEchoSetLabelByType } from "../echoes/stats";
 import {
@@ -397,6 +403,7 @@ import CalculatorOptimizerMainEcho from "./CalculatorOptimizerMainEcho.vue";
 import CalculatorOptimizerTarget from "./CalculatorOptimizerTarget.vue";
 import CalculatorOptimizerDamageType from "./CalculatorOptimizerDamageType.vue";
 import CalculatorOptimizerResults from "./CalculatorOptimizerResults.vue";
+import OptimizerStaleResultsAlert from "./OptimizerStaleResultsAlert.vue";
 import CalculatorOptimizerGuide from "./CalculatorOptimizerGuide.vue";
 import CalculatorOptimizerSettings from "./CalculatorOptimizerSettings.vue";
 import OptimizerSetFilterControls from "./OptimizerSetFilterControls.vue";
@@ -427,11 +434,14 @@ const props = defineProps<{
   totalCritRate: number;
   totalCritDMG: number;
   energyRegen: number;
+  currentStatParts?: CurrentStatParts | null;
   optimizationTargetType: string;
   optimizationTargetObject: string;
+  resultsStale?: boolean;
 }>();
 
 const emit = defineEmits<{
+  "optimizer:rerun": [];
   "optimizer:optimize": [
     setFilters: string[],
     mainEchoes: string[],

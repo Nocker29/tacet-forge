@@ -17,6 +17,7 @@ Here's a quick guide on how to build a new character. High level steps:
 8. Add any team buffs to `./buffs/index.ts`
 9. Make sure to do the resonance chains
 10. If there are new features or buff handling, you'll need to update the app to handle it
+11. Optional: add `suggestedWeapons` and `suggestedTeams` to `basic.ts`. `suggestedTeams` is a list of `{ members: [teammateKey, teammateKey], tags: [...] }`, strongest first, for the Team Buffs tab's Recommended teams card (Labs). Tags must come from `src/characters/teamTags.ts`; `tests/characters/recommendedTeams.test.ts` fails on an unknown teammate or tag. Every teammate named in a team also needs typical buffs in `src/buffs/teamBuffDefaults.ts` (an empty list means "no team buffs on purpose"), which `tests/buffs/teamBuffDefaults.test.ts` checks. The easiest way to fill in both is `npm run cli -- edit team-data`: it reports what's missing and only offers real characters, buffs and tags.
 
 ## Buff configurations
 
@@ -31,6 +32,8 @@ Note that Vulnerability is usually a rare buff, and the wording is inconsistent 
 For that case, add an optional `realisticMaxStacks` alongside `maxStacks` set to a value you've actually verified against a real rotation (not a guess): it becomes the target for that buff's "Max" button everywhere in the app (self buffs, resonance chains, team buffs), while `maxStacks` still governs the slider's outer bound and the store data limit. Leave it unset unless you have a rotation-verified number — an unverified `realisticMaxStacks` is worse than no cap at all, since it looks authoritative to users. See ADR [0029](./adr/0029-buff-realistic-max-stacks.md) for why this is a manually-authored field rather than something the app computes automatically.
 
 `realisticMaxStacks` only does anything on buffs with `hasStacks: true`. For an `inputBase: true` team buff (a teammate's own Energy Regen/CritRate typed in manually — e.g. Shorekeeper's `SophisticatedStellarealmCritRate`), there's no stack count or hard cap to target instead, so use the sibling field `realisticBaseAttrValue` — it renders a "Suggested (N)" button next to that input. Treat it as a reasonable assumption rather than a verified fact (a teammate's real stat varies with their own build), and only set it on `inputBase` buffs.
+
+An `inputBase` team buff can also have `hasStacks: true` when each stack scales off the entered stat — e.g. Lily's `DreamAroma`, "each stack increases ATK by 0.1% for every 1% of Lily's Energy Regen above 190%, up to 7%". Put the per-stack cap in `perStackMaximumValue` (it's applied to each stack before multiplying by the stack count) and the total cap in `maximumValue`. Self-buff `AdditionalBase` modifiers take the same `perStackMaximumValue` field.
 
 ### Base talent multiplier
 
