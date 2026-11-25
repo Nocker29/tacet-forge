@@ -157,3 +157,5 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
 - Phone bottom bar fits all sections in one row (Characters made it wrap "More").
 - Repository files use LF line endings on Windows too (upstream's data generators compare files
   byte for byte); `.bat` files keep CRLF.
+- Fixed "Run Optimizer" doing nothing after the merge (the new re-run support referenced the
+  removed "ignore other resonators' echoes" setting).
