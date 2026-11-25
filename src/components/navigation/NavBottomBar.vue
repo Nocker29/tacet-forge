@@ -2,7 +2,8 @@
   <nav
     ref="barRef"
     aria-label="Main"
-    class="nav-bottom-bar fixed inset-x-0 bottom-0 z-40 bg-base-300 border-t border-base-content/10 grid grid-cols-5 px-1 pt-1.5"
+    class="nav-bottom-bar fixed inset-x-0 bottom-0 z-40 bg-base-300 border-t border-base-content/10 grid px-1 pt-1.5"
+    :style="{ gridTemplateColumns: `repeat(${MAIN_SECTIONS.length + 1}, minmax(0, 1fr))` }"
     :class="{ 'nav-bottom-bar--tucked': isTucked }"
     data-test-nav-bottom-bar
     @focusin="hasFocus = true"

@@ -53,6 +53,7 @@ describe("UpdatesView", () => {
     render(UpdatesView, {
       global: { plugins: [router, createTestingPinia()] },
     });
-    expect(document.title).toBe("Updates — Wuthering Waves Calculator & Optimizer");
+    // Tacet Forge brands every page title (brandTitle in useDocumentTitle.ts).
+    expect(document.title).toBe("Updates — Tacet Forge");
   });
 });
