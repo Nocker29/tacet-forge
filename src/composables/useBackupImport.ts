@@ -10,6 +10,7 @@ import { BackupImportError, applyImportedDatabase, importEchoesFromRaw, prepareI
 import { describeImportSummary, summarizeImport } from "../utils/importPreview";
 import { useConfirm } from "./useConfirm";
 import { useDuplicateImportPrompt } from "./useDuplicateImportPrompt";
+import { useLowLevelImportPrompt } from "./useLowLevelImportPrompt";
 import { useToast } from "./useToast";
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
@@ -17,6 +18,7 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
 export function useBackupImport() {
   const { showToast } = useToast();
   const { askAboutDuplicates } = useDuplicateImportPrompt();
+  const { askAboutLowLevel } = useLowLevelImportPrompt();
   const inventoryStore = useInventoryStore();
   const { confirm } = useConfirm();
 
@@ -62,16 +64,18 @@ export function useBackupImport() {
     }
   }
 
-  /** Adds a list of echoes, asking about duplicates. Returns whether anything was imported. */
+  /** Adds a list of echoes, asking about echoes below level 25, then duplicates. Returns whether anything was imported. */
   async function importEchoesText(text: string): Promise<boolean> {
     try {
       const result = await importEchoesFromRaw(
         text,
         inventoryStore,
         (duplicateCount, totalCount) => askAboutDuplicates(duplicateCount, totalCount) as Promise<"skip" | "import" | null>,
+        askAboutLowLevel,
       );
       if (!result) return false;
       const notes = [
+        result.lowLevelSkipped ? ` Skipped ${plural(result.lowLevelSkipped, "echo", "echoes")} below level 25.` : "",
         result.skipped ? ` Skipped ${plural(result.skipped, "duplicate", "duplicates")}.` : "",
         result.invalid ? ` Left out ${plural(result.invalid, "entry that isn't an echo", "entries that aren't echoes")}.` : "",
       ].join("");

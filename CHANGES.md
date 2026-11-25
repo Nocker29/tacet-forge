@@ -165,3 +165,6 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   file; the input file is never changed.
 - **Import preview**: "Import & overwrite" first lists what the backup changes (characters, builds,
   echoes, teams) and asks before replacing your data.
+- **Echo import asks about echoes below level 25** (fewer than 5 substats, since import files
+  have no level): Skip them / Import anyway / Cancel. Asked before the duplicates question, which
+  then only looks at the echoes that are left. Applies to Import echoes and the build card import.

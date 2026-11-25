@@ -17,6 +17,8 @@ import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
 import { findIncomingDuplicates, getDuplicateKey } from "../echoes/duplicateCleanup";
 import { useDuplicateImportPrompt } from "./useDuplicateImportPrompt";
+import { useLowLevelImportPrompt } from "./useLowLevelImportPrompt";
+import { findLowLevelEchoes } from "../echoes/echoLevel";
 
 export type DuplicateReviewItem = {
   index: number;
@@ -35,6 +37,7 @@ export function useEchoDuplicateReview(options: {
   const characterStore = useCharacterStore();
   const inventoryStore = useInventoryStore();
   const { askAboutDuplicates } = useDuplicateImportPrompt();
+  const { askAboutLowLevel } = useLowLevelImportPrompt();
 
   const isReviewingDuplicates = ref(false);
   const duplicateReviewItems = ref<DuplicateReviewItem[]>([]);
@@ -139,19 +142,32 @@ export function useEchoDuplicateReview(options: {
     }
 
     // Empty slots (no echoId — see mapParsedEchoes) have nothing to review or save.
+    const isEcho = (echo: MappedEcho) => Boolean(echo.echoId && echo.echo);
+
+    // First: echoes below level 25. Skipped ones still fill their slot on
+    // the character but aren't saved to the inventory; cancel stops here.
+    const lowLevel = findLowLevelEchoes(echoes, (echo) => isEcho(echo as MappedEcho));
+    let skippedLowLevel = new Set<number>();
+    if (lowLevel.indexes.size) {
+      const levelChoice = await askAboutLowLevel(lowLevel, echoes.filter(isEcho).length);
+      if (levelChoice == null) return;
+      if (levelChoice === "skip") skippedLowLevel = lowLevel.indexes;
+    }
+    const allIndexes = echoes.map((_, index) => index).filter((index) => !skippedLowLevel.has(index));
+
+    // Then duplicates, among what is left.
     const duplicates = findIncomingDuplicates(
-      echoes,
+      echoes.map((echo, index) => (skippedLowLevel.has(index) ? null : echo)),
       new Set((inventoryStore.echoes ?? []).map(getDuplicateKey)),
-      (echo) => (echo.echoId && echo.echo ? getDuplicateKey(echo) : null),
+      (echo) => (echo && isEcho(echo) ? getDuplicateKey(echo) : null),
     );
-    const allIndexes = echoes.map((_, index) => index);
     if (!duplicates.size) {
       await finalizeImport(echoes, new Set(allIndexes));
       return;
     }
 
     // Cancelling the question falls back to the review list, so nothing is lost.
-    const reviewable = echoes.filter((echo) => echo.echoId).length;
+    const reviewable = allIndexes.filter((index) => echoes[index].echoId).length;
     const choice = await askAboutDuplicates(duplicates.size, reviewable, { canReview: true });
     if (choice === "skip") {
       await finalizeImport(echoes, new Set(allIndexes.filter((index) => !duplicates.has(index))));
@@ -162,11 +178,10 @@ export function useEchoDuplicateReview(options: {
       return;
     }
 
-    duplicateReviewItems.value = echoes.flatMap((echo, index) =>
-      echo.echoId
-        ? [{ index, echo, isDuplicate: duplicates.has(index), selected: !duplicates.has(index) }]
-        : [],
-    );
+    duplicateReviewItems.value = allIndexes.flatMap((index) => {
+      const echo = echoes[index];
+      return echo.echoId ? [{ index, echo, isDuplicate: duplicates.has(index), selected: !duplicates.has(index) }] : [];
+    });
     reviewEchoes.value = echoes;
     isReviewingDuplicates.value = true;
   }

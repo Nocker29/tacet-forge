@@ -1,9 +1,14 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useEchoDuplicateReview } from "../../src/composables/useEchoDuplicateReview";
 import { useEchoSlotAssignment } from "../../src/composables/useEchoSlotAssignment";
 import { useCharacterStore } from "../../src/stores/character";
 import { useInventoryStore } from "../../src/stores/inventory";
+
+// These slots carry one substat; the below-level-25 question isn't under test here.
+vi.mock("../../src/composables/useLowLevelImportPrompt", () => ({
+  useLowLevelImportPrompt: () => ({ askAboutLowLevel: async () => "import" }),
+}));
 
 const parsedSlot = (echo: string, subStat: string) => ({
   echo,
