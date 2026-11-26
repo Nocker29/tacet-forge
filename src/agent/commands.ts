@@ -14,7 +14,7 @@ import { applyImportedDatabase, BackupImportError, getExportData } from "../util
 import { useCharacterStore } from "../stores/character";
 import { useInventoryStore } from "../stores/inventory";
 import { useTeamRotationsStore } from "../stores/teamRotations";
-import { allCharactersList, getCharacterRosterDisplayName } from "../characters/characters";
+import { allCharactersList, getCharacterRosterDisplayName, getCharByName } from "../characters/characters";
 import { getCharacterLevel, getSequenceLevel } from "../characters/characterOverview";
 import {
   buildCharacterCalculationContext,
@@ -37,6 +37,18 @@ import { echoSetLabelMap, subStatLabelMap } from "../echoes/stats";
 import { getCostByClass, mainEchoesData } from "../echoes/index";
 import { buildAgentOptimizerContext } from "./optimizerContext";
 import { calculatorStatePatch, withCalculatorStateFor } from "./calculatorState";
+import {
+  actionsFromSources,
+  characterFrames,
+  echoAttackFrames,
+  FRAME_FORMAT,
+  normalizeInlineActions,
+  presetActions,
+  presetEcho,
+  runTeamRotation,
+} from "./teamRotation";
+import type { TeamRotationAction, TeamRotationInput } from "../calculator/teamRotation";
+import { echoFramesSyncedAt } from "../echoes/frames";
 import { computeEchoSetPassiveBuffs, computeMainEchoStats, readOptimizerSettings } from "./optimizerInputs";
 
 type Plain = Record<string, any>;
@@ -204,7 +216,7 @@ function splitList(value: unknown): string[] {
 
 interface ArgDef {
   name: string;
-  type: "string" | "number" | "boolean" | "list";
+  type: "string" | "number" | "boolean" | "list" | "json";
   required?: boolean;
   description: string;
 }
@@ -640,6 +652,199 @@ const commands: CommandDef[] = [
         out,
         next: "Ask the user to open Tacet Forge → Settings → Backup & Restore → Import & overwrite, choose this file, and check the preview. Undo last import restores their previous data.",
       };
+    },
+  },
+  {
+    name: "rotations",
+    summary:
+      "Saved team rotations, each character's saved rotations, and the app's built-in rotation presets (which are empty for many characters).",
+    args: [DATA_ARG, { name: "character", type: "string", description: "Only this character's rotations and presets." }],
+    output:
+      "{ teams: [{ id, name, characters, buildIds, actions, duration }], characterRotations: [{ character, id, name, actions, duration }], presets: [{ character, name, actions, echo }], charactersWithoutPresets: [key…] }",
+    async run(args, runtime) {
+      const session = openSession(runtime, args.data);
+      const only = args.character != null ? resolveCharacter(session, args.character) : null;
+      const keys = only ? [only] : Object.keys(session.characters);
+      const teams = (useTeamRotationsStore().teams as Plain[])
+        .filter((team) => !only || (team.characterIds ?? []).includes(only))
+        .map((team) => ({
+          id: team.id,
+          name: team.name,
+          characters: team.characterIds,
+          buildIds: team.buildIds ?? [null, null, null],
+          actions: (team.actions ?? []).length,
+          duration: team.duration ?? null,
+        }));
+      const characterRotations = keys.flatMap((key) =>
+        ((session.characters[key]?.rotations ?? []) as Plain[]).map((rotation) => ({
+          character: key,
+          id: rotation.id,
+          name: rotation.name,
+          actions: (rotation.actions ?? []).length,
+          duration: rotation.duration ?? null,
+        })),
+      );
+      const presets: Plain[] = [];
+      const charactersWithoutPresets: string[] = [];
+      for (const key of keys) {
+        const data = (await getCharByName(key).catch(() => null)) as Plain | null;
+        const list = ((data?.rotations ?? []) as Plain[]).filter((preset) => presetActions(preset).length);
+        if (!list.length) charactersWithoutPresets.push(key);
+        for (const preset of list) {
+          presets.push({ character: key, name: preset.name, actions: presetActions(preset).length, echo: presetEcho(preset) });
+        }
+      }
+      return { teams, characterRotations, presets, charactersWithoutPresets };
+    },
+  },
+  {
+    name: "team-rotation",
+    summary:
+      "Damage, DPS and frame-data timeline of a team rotation (up to 3 characters), with the app's Teams calculation. Use a saved team (--team), or build one from --characters plus --actions or --slot-rotations.",
+    args: [
+      DATA_ARG,
+      { name: "team", type: "string", description: "Saved team rotation id or name (see `rotations`)." },
+      { name: "characters", type: "list", description: "Up to 3 character keys in slot order (slot 0,1,2), e.g. Hiyuki,Lucilla,Chisa." },
+      { name: "builds", type: "list", description: "Per-slot build id or name; empty = active build (e.g. ,MyBuild,)." },
+      {
+        name: "actions",
+        type: "json",
+        description:
+          "Inline actions as JSON, or @path to a JSON file: [{ \"slot\": 0, \"type\": \"intro\", \"key\": \"FrostedgeDMG\", \"count\": 1 }, …] in play order. Types and keys: `frames --character X`; echo actions use type echoAttacks (+ optional mainEcho); { \"slot\": 0, \"type\": \"wait\", \"frames\": 30 } waits.",
+      },
+      {
+        name: "slot-rotations",
+        type: "list",
+        description:
+          "Instead of --actions: per slot, a saved rotation id/name of that character or a preset name, appended slot after slot (like the Teams page's import).",
+      },
+      { name: "duration", type: "number", description: "Rotation length in seconds for the typed-duration DPS (frame-data DPS needs none)." },
+    ],
+    output:
+      "{ team: { name, characters, builds, duration, source }, total: { normal, average, crit, healing, shield }, dps: [{ source: frames|typed, seconds, normal, average, crit, actionsWithoutFrameData }], headlineDps, perCharacter: [{ character, normal, average, crit, shareOfAverage }], actions: [{ order, slot, character, type, key, label, count, normal, average, crit, kind, timing: { startFrame, gameFrames, realFrames, timeStopFrames, hitFrames, missingFrameData } }], timeline: { gameFrames, realFrames, gameSeconds, realSeconds, timeStopFrames, actionsWithoutFrameData, blocks, landings } | null, notes }",
+    async run(args, runtime) {
+      const session = openSession(runtime, args.data);
+      const teamsStore = useTeamRotationsStore();
+      let team: TeamRotationInput & { enemyConfig?: Plain };
+      let source: string;
+
+      if (args.team != null) {
+        const wanted = String(args.team);
+        const saved = (teamsStore.teams as Plain[]).find(
+          (entry) => entry.id === wanted || String(entry.name ?? "").toLowerCase() === wanted.toLowerCase(),
+        );
+        if (!saved) throw new AgentError("unknown_team", `No saved team rotation "${wanted}".`, "Run `rotations` to list them.");
+        team = { ...(JSON.parse(JSON.stringify(saved)) as Plain), duration: args.duration ?? saved.duration ?? null } as never;
+        source = "saved team";
+      } else {
+        const characterIds = splitList(args.characters).map((name) => resolveCharacter(session, name));
+        if (!characterIds.length || characterIds.length > 3) {
+          throw new AgentError("bad_team", "Pass --team, or --characters with 1–3 characters.", "Run `rotations` for saved teams.");
+        }
+        const buildInputs = args.builds != null ? String(Array.isArray(args.builds) ? args.builds.join(",") : args.builds).split(",") : [];
+        const buildIds = characterIds.map((key, slot) => {
+          const wantedBuild = buildInputs[slot]?.trim();
+          return wantedBuild ? resolveBuild(session.characters[key], wantedBuild).id : null;
+        });
+        let actions: TeamRotationAction[];
+        if (args.actions != null) {
+          try {
+            const text = typeof args.actions === "string" ? args.actions : null;
+            const parsed =
+              text == null ? args.actions : JSON.parse(text.startsWith("@") ? runtime.readText(runtime.resolvePath(text.slice(1))) : text);
+            actions = normalizeInlineActions(parsed);
+          } catch (error) {
+            throw new AgentError("bad_actions", `Can't read --actions: ${error instanceof Error ? error.message : String(error)}`, "See `team-rotation --help`.");
+          }
+          source = "inline actions";
+        } else if (args["slot-rotations"] != null) {
+          const names = String(Array.isArray(args["slot-rotations"]) ? args["slot-rotations"].join(",") : args["slot-rotations"]).split(",");
+          const sources = [];
+          for (let slot = 0; slot < characterIds.length; slot++) {
+            const name = names[slot]?.trim();
+            if (!name) continue;
+            const key = characterIds[slot];
+            const saved = ((session.characters[key]?.rotations ?? []) as Plain[]).find(
+              (rotation) => rotation.id === name || String(rotation.name ?? "").toLowerCase() === name.toLowerCase(),
+            );
+            const data = saved ? null : ((await getCharByName(key)) as Plain);
+            const preset =
+              saved ?? ((data?.rotations ?? []) as Plain[]).find((entry) => String(entry.name ?? "").toLowerCase() === name.toLowerCase());
+            if (!preset || !presetActions(preset).length) {
+              throw new AgentError("unknown_rotation", `No rotation or preset "${name}" with actions for ${key}.`, `Run \`rotations --character ${key}\`.`);
+            }
+            sources.push({ slot: slot as 0 | 1 | 2, actions: presetActions(preset), echo: presetEcho(preset) });
+          }
+          actions = actionsFromSources(sources);
+          source = "slot rotations";
+        } else {
+          throw new AgentError("missing_actions", "Pass --actions or --slot-rotations (or --team).", "See `team-rotation --help`.");
+        }
+        // A new team's enemy, as the Teams page creates it.
+        const defaults = teamsStore.createTeam("agent");
+        teamsStore.deleteTeam(defaults.id);
+        team = {
+          name: "Agent team",
+          characterIds: [0, 1, 2].map((slot) => characterIds[slot] ?? null),
+          buildIds: [0, 1, 2].map((slot) => buildIds[slot] ?? null),
+          actions,
+          duration: args.duration ?? null,
+          enemyConfig: defaults.enemyConfig,
+        };
+      }
+
+      const inventoryEchoes = useInventoryStore().echoes;
+      // Each member as the calculator leaves it after rendering (calculatorState.ts),
+      // so these numbers agree with `damage` for the same build.
+      let characters = session.characters as Record<string, Plain>;
+      for (const key of team.characterIds) if (key) characters = withCalculatorStateFor(characters, key, inventoryEchoes);
+      // Echo actions need their echo; the Teams page fills in the slot's main echo when adding one.
+      team.actions = team.actions.map((action) => {
+        if (action.type !== "echoAttacks" || action.mainEcho) return action;
+        const key = team.characterIds[action.slot];
+        const member = key ? resolveCharactersForBuild(characters, key, team.buildIds?.[action.slot] ?? null)[key] : null;
+        return { ...action, mainEcho: member?.mainEcho?.echo ?? null, mainEchoRank: action.mainEchoRank ?? member?.mainEcho?.rank ?? 5 };
+      });
+      const result = await runTeamRotation(team, characters, (team.enemyConfig ?? {}) as never, inventoryEchoes);
+      const notes: string[] = [];
+      if (!result.timeline) notes.push("No frame data for these characters: no timeline or frame-data DPS; pass --duration for a typed DPS.");
+      else if (result.timeline.actionsWithoutFrameData) {
+        notes.push(`${result.timeline.actionsWithoutFrameData} action(s) have no frame data and count as 0 frames.`);
+      }
+      notes.push("Buff windows aren't modelled by the app: buffs apply as configured on each character and action, not by time.");
+      return {
+        team: { name: team.name, characters: team.characterIds, builds: team.buildIds, duration: team.duration ?? null, source },
+        ...result,
+        notes,
+      };
+    },
+  },
+  {
+    name: "frames",
+    summary:
+      "A character's attacks by action type (the type/key pairs rotations use) with wuwalab frame data, or a main echo's attacks with --echo. No --data needed.",
+    args: [
+      { name: "character", type: "string", description: "Character key, e.g. Hiyuki (any released character, saved or not)." },
+      { name: "echo", type: "string", description: "Main echo key for its echoAttacks (see `catalog --what main-echoes`)." },
+    ],
+    output:
+      "{ character? | echo?, syncedAt, format, attacks: [{ type, key, label, frames: { total, cancel, noSwap, timeStop, motionStop, cooldown, onCast, hits, offField, shared } | null }] }",
+    async run(args) {
+      if (args.echo != null) {
+        const echo = echoAttackFrames(String(args.echo));
+        if (!echo) throw new AgentError("unknown_echo", `No main echo "${args.echo}".`, "Run `catalog --what main-echoes`.");
+        return { ...echo, syncedAt: echoFramesSyncedAt, format: FRAME_FORMAT };
+      }
+      const wanted = String(args.character ?? "").trim();
+      if (!wanted) throw new AgentError("missing_argument", "Pass --character or --echo.");
+      const entry = (allCharactersList as Plain[]).find(
+        (character) =>
+          character.key.toLowerCase() === wanted.toLowerCase() ||
+          getCharacterRosterDisplayName(character.key).toLowerCase() === wanted.toLowerCase(),
+      );
+      if (!entry) throw new AgentError("unknown_character", `No character "${wanted}".`);
+      const data = (await getCharByName(entry.key)) as Plain;
+      return { character: entry.key, ...characterFrames(data), format: FRAME_FORMAT };
     },
   },
 ];

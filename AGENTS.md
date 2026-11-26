@@ -19,8 +19,10 @@ don't need to read or understand the app's source to use it.
 The tool works on a **backup file** the user exports from the app, never on the browser itself.
 
 - If the user gave you a path to a `.json` backup, use it.
-- Otherwise ask them: *"In Tacet Forge open **Settings → Backup & Restore → Download .json** and
-  tell me where the file is."* Wuthering Tools (wutheringtools.com) backups work too.
+- Otherwise **ask them** for the path, or to export one: *"In Tacet Forge open **Settings → Backup &
+  Restore → Download .json** and tell me where the file is."* Don't go looking through their
+  Downloads or other folders for it. Wuthering Tools (wutheringtools.com) backups work too.
+- `frames` and `catalog` need no backup.
 
 ## 3. Run commands
 
@@ -38,6 +40,13 @@ node scripts/agent.mjs <command> --data "<path to backup.json>" [--arg value …
 - `damage` and `optimize` print a lot: redirect to a file (`> out.json`) and read the fields you
   need. Windows paths work quoted (`"C:\Users\me\backup.json"`) or with forward slashes.
 - `npm run --silent agent -- <command> …` works too (without `--silent` npm adds a banner to stdout).
+- Each call takes about 2–4 s, mostly start-up. For several commands use **batch** (one process,
+  results in order), or the MCP server (section 6), which stays warm between calls:
+
+  ```
+  node scripts/agent.mjs batch < commands.jsonl
+  ```
+  with one JSON object per line: `{"command": "stats", "args": {"data": "…", "character": "Hiyuki"}}`.
 
 | Command | What it gives you |
 |---|---|
@@ -49,6 +58,9 @@ node scripts/agent.mjs <command> --data "<path to backup.json>" [--arg value …
 | `catalog [--what sets\|main-echoes\|substats]` | Keys for echo sets, main echoes, substats |
 | `optimize --character X [options]` | Best echo loadouts by the app's own optimizer |
 | `apply --character X --echoes id1,…` | Saves those echoes as a **new build** in a **new backup file** |
+| `rotations [--character X]` | Saved team rotations, each character's saved rotations, the app's rotation presets (often empty) |
+| `team-rotation …` | Team damage, DPS and frame-data timeline for up to 3 characters (see below) |
+| `frames --character X` / `frames --echo E` | Action `type`/`key` pairs for rotations, with wuwalab frame data |
 
 `optimize` starts from the character's **saved optimizer settings** (what the user set in the app).
 Any option overrides them: `--target`, `--sets`, `--main-echoes`, `--min-stat "energyRegen>=120"`,
@@ -58,6 +70,30 @@ option to pass. Stats use the app's units: percents as percents (`energyRegen: 1
 left out. `optimize` returns 5 results by default (`--top`). The current build may not meet the
 saved minimum stats, so mention that when comparing it with an optimized one.
 
+### Team rotations
+
+`team-rotation` uses the app's Teams calculation. Give it either a **saved team** or the characters
+and their actions:
+
+```
+node scripts/agent.mjs team-rotation --data b.json --team "My team"
+node scripts/agent.mjs team-rotation --data b.json --characters Hiyuki,Lucilla --slot-rotations "Burst,Opener"
+node scripts/agent.mjs team-rotation --data b.json --characters Hiyuki,Lucilla --actions @actions.json --duration 12
+```
+
+- `--slot-rotations`: one saved rotation (id or name) or preset name per slot, played slot after
+  slot. `rotations` shows what exists. Presets are empty for many characters, so say so instead of
+  guessing a rotation.
+- `--actions`: a JSON list (inline, or `@file`) in play order:
+  `[{"slot": 1, "type": "intro", "key": "ClipItDMG"}, {"slot": 0, "type": "liberation", "key": "ForeclaimingBladeLiberationBaseDMG", "count": 1}]`.
+  Slot 0–2 follows `--characters`. Get valid `type`/`key` pairs from `frames --character X` (types:
+  basic, skill, forteCircuit, liberation, intro, outro, tuneBreak; `echoAttacks` keys from
+  `frames --echo <main echo>`; `{"type": "wait", "frames": 30}` waits). `--builds ,Name,` pins builds.
+- Output: `total`, `perCharacter`, every action's damage and timing (start frame, game/real
+  frames, time-stop frames, hit frames), `timeline` (game vs real length, time stop, blocks,
+  landings), and `dps` from frame data and from `--duration` when given. The app has no buff
+  windows: buffs apply as configured, not by time. Actions without frame data count as 0 frames,
+  and the output says how many.
 ## 4. Typical workflow
 
 1. `characters`: find the character key and their current build.
