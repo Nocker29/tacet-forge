@@ -2,8 +2,8 @@
 // (src/agent/optimizerInputs.ts). This renders the real v3 screen with the
 // same data, presses Run, and checks both agree, so a change to the screen's
 // buff handling fails here instead of making the agent drift.
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, fireEvent, screen, waitFor } from "@testing-library/vue";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, fireEvent, screen } from "@testing-library/vue";
 import { createPinia, setActivePinia } from "pinia";
 import OptimizerWorkspaceSetup from "../../src/components/optimizerWorkspace/OptimizerWorkspaceSetup.vue";
 import { useCharacterStore } from "../../src/stores/character";
@@ -75,14 +75,17 @@ const cases: Array<{ name: string; character: string; record: Plain }> = [
 ];
 
 async function runScreen(character: string) {
-  const { emitted } = render(OptimizerWorkspaceSetup, { props: { character } });
+  const { emitted, unmount } = render(OptimizerWorkspaceSetup, { props: { character } });
   const run = await screen.findByRole("button", { name: /Run Optimizer/i });
-  // Let the buff rows mount and emit their stats.
-  await waitFor(() => expect(run).toBeTruthy());
+  // The target picker loads the character's kit with a dynamic import on
+  // mount; on a cold run that import outlived the test and failed after
+  // teardown (unhandled rejection). Wait for it, and for the buff rows.
+  await vi.dynamicImportSettled();
   await new Promise((resolve) => setTimeout(resolve, 0));
   await fireEvent.click(run);
   const events = emitted()["optimizer:optimize"] as unknown[][];
   expect(events?.length).toBeGreaterThan(0);
+  unmount();
   return events[events.length - 1];
 }
 

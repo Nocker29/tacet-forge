@@ -170,3 +170,13 @@ This file lists the changes made in the fork, as required by GPL-3.0 §5(a).
   question, which then only looks at the echoes that are left. Echoes without a level (e.g. scanner
   exports, where 4 substats at level 25 is normal) are never flagged. Applies to Import echoes and
   the build card import.
+
+## 2026-11-26
+
+- **Agent tool:** new commands `team-rotation` (team damage, DPS and frame-data timeline from a
+  saved team, saved rotations/presets per slot, or actions given as JSON), `rotations` (saved team
+  and character rotations, presets) and `frames` (action types/keys with frame data). `batch` runs
+  several commands in one process. AGENTS.md documents them and asks agents to get the backup path
+  from the user instead of searching for it.
+- Fixed a test that could fail on a cold run (it ended before the optimizer screen finished loading
+  the character).

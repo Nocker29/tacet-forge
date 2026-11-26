@@ -126,3 +126,73 @@ describe("agent commands", () => {
     expect(await run("apply", { character: "Hiyuki", echoes: "zzz" })).toMatchObject({ ok: false, error: { code: "unknown_echo" } });
   });
 });
+
+describe("agent team rotations and frames", () => {
+  it("lists saved team rotations, character rotations, and characters without presets", async () => {
+    fresh();
+    const out = await run("rotations");
+    expect(out.result.teams).toEqual([
+      expect.objectContaining({ id: "team1", name: "Hiyuki Lucilla", characters: ["Hiyuki", "Lucilla", null], actions: 7 }),
+    ]);
+    expect(out.result.characterRotations).toEqual([expect.objectContaining({ character: "Hiyuki", id: "rot1", actions: 5 })]);
+    expect(out.result.charactersWithoutPresets).toEqual(expect.arrayContaining(["Hiyuki"]));
+  });
+
+  it("a one-character team gives the same damage as that character's saved rotation in `damage`", async () => {
+    fresh();
+    const damage = await run("damage", { character: "Hiyuki" });
+    const saved = damage.result.rotations.find((rotation: Plain) => rotation.id === "rot1");
+    const team = await run("team-rotation", { characters: "Hiyuki", "slot-rotations": "Burst" });
+    expect(team.ok).toBe(true);
+    expect(team.result.total.average).toBe(saved.average);
+    expect(team.result.total.normal).toBe(saved.normal);
+    expect(team.result.total.crit).toBe(saved.crit);
+  });
+
+  it("a saved team and the same actions given inline agree, with totals, per-character split and frame timeline", async () => {
+    fresh();
+    const saved = await run("team-rotation", { team: "Hiyuki Lucilla" });
+    expect(saved.ok).toBe(true);
+    const teamsState = JSON.parse(JSON.parse(readFileSync(FIXTURE, "utf8")).data.teamRotations);
+    const inline = await run("team-rotation", {
+      characters: "Hiyuki,Lucilla",
+      actions: JSON.stringify(teamsState.teams[0].actions),
+      duration: 12,
+    });
+    expect(inline.result.total).toEqual(saved.result.total);
+    expect(inline.result.dps).toEqual(saved.result.dps);
+
+    const { total, perCharacter, actions, timeline, dps } = saved.result;
+    expect(perCharacter.reduce((sum: number, entry: Plain) => sum + entry.average, 0)).toBeCloseTo(total.average, -1);
+    expect(actions.map((action: Plain) => action.character)).toEqual(["Lucilla", "Lucilla", "Hiyuki", "Hiyuki", "Hiyuki", "Hiyuki", "Hiyuki"]);
+    expect(timeline.gameFrames).toBeGreaterThan(0);
+    expect(timeline.realFrames).toBeGreaterThan(timeline.gameFrames); // liberations stop time
+    expect(timeline.timeStopFrames).toBe(timeline.realFrames - timeline.gameFrames);
+    const liberation = actions.find((action: Plain) => action.key === "ForeclaimingBladeLiberationBaseDMG");
+    expect(liberation.timing).toMatchObject({ timeStopFrames: 360, missingFrameData: false });
+    expect(liberation.timing.hitFrames.length).toBe(2);
+    expect(dps.map((reading: Plain) => reading.source)).toEqual(["frames", "typed"]);
+  });
+
+  it("fills an echo action's main echo from the slot, and reports bad input as JSON errors", async () => {
+    fresh();
+    const out = await run("team-rotation", {
+      characters: "Hiyuki",
+      actions: [{ slot: 0, type: "echoAttacks", key: "Aleph1sCreationDMG" }],
+    });
+    expect(out.result.actions[0]).toMatchObject({ key: "Aleph1sCreationDMG", kind: "damage" });
+    expect(out.result.actions[0].average).toBeGreaterThan(0);
+    expect(await run("team-rotation", { characters: "Hiyuki", actions: "[{" })).toMatchObject({ ok: false, error: { code: "bad_actions" } });
+    expect(await run("team-rotation", { characters: "Hiyuki" })).toMatchObject({ ok: false, error: { code: "missing_actions" } });
+    expect(await run("team-rotation", { team: "nope" })).toMatchObject({ ok: false, error: { code: "unknown_team" } });
+  });
+
+  it("frames lists a character's action types and keys with frame data, and a main echo's", async () => {
+    fresh();
+    const character = await runAgentCommand("frames", { character: "Hiyuki" }, runtime);
+    const blade = character.result.attacks.find((attack: Plain) => attack.key === "ForeclaimingBladeLiberationBaseDMG");
+    expect(blade).toMatchObject({ type: "liberation", frames: { total: 360, timeStop: [0, 360] } });
+    const echo = await runAgentCommand("frames", { echo: "ReminiscenceThrenodianVoidborneConstruct" }, runtime);
+    expect(echo.result.attacks[0]).toMatchObject({ type: "echoAttacks", key: "Aleph1sCreationDMG" });
+  });
+});

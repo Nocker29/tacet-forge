@@ -20,6 +20,7 @@ function argSchema(arg) {
   const description = arg.description;
   if (arg.type === "number") return { type: "number", description };
   if (arg.type === "boolean") return { type: "boolean", description };
+  if (arg.type === "json") return { description: `${description} (a JSON value, or a string holding JSON)` };
   if (arg.type === "list") {
     return { anyOf: [{ type: "array", items: { type: "string" } }, { type: "string" }], description: `${description} (array, or comma-separated)` };
   }
